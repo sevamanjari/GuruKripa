@@ -3,6 +3,8 @@ import cors from "cors";
 import dotenv from "dotenv";
 import apiRoutes from "./routes/api.routes.js";
 import { securityHeaders } from "./middleware/authMiddleware.js";
+import { connectDB, isDbConnected } from "./config/db.js";
+import { syncFromMongo } from "./data/dataStore.js";
 
 dotenv.config();
 
@@ -76,10 +78,15 @@ app.use((err, req, res, next) => {
   });
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
+  await connectDB();
+  if (isDbConnected()) {
+    await syncFromMongo();
+  }
   console.log(`===============================================`);
   console.log(`🚀 GuruKripa Secure Server running on http://localhost:${PORT}`);
   console.log(`🛡️  Security Headers & Auth Guard active`);
+  console.log(`🍃 Database mode: ${isDbConnected() ? "MongoDB Atlas (Online)" : "Fallback JSON Datastore"}`);
   console.log(`📡 CORS restricted to: ${allowedOrigins.join(", ")}`);
   console.log(`🩺 Health check: http://localhost:${PORT}/api/health`);
   console.log(`===============================================`);

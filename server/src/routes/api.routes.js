@@ -42,6 +42,7 @@ import {
 } from "../controllers/underwriterController.js";
 import { login, getCurrentUser } from "../controllers/authController.js";
 import { authenticateToken, sanitizeRequestBody } from "../middleware/authMiddleware.js";
+import { isDbConnected } from "../config/db.js";
 
 const router = express.Router();
 
@@ -55,6 +56,7 @@ router.get("/health", (req, res) => {
   res.json({
     status: "ok",
     app: "GuruKripa Yatayat RTO Portal",
+    database: isDbConnected() ? "MongoDB Atlas (Online)" : "Fallback JSON Datastore (Local)",
     timestamp: new Date().toISOString()
   });
 });
