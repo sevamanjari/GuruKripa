@@ -301,17 +301,17 @@ export default function App() {
   const remindersCount = React.useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const expInsurances = insurances.filter((i) => {
-      if (!i.expiryDate) return false;
+    const expInsurances = (Array.isArray(insurances) ? insurances : []).filter((i) => {
+      if (!i || !i.expiryDate) return false;
       const d = Math.ceil((new Date(i.expiryDate) - today) / (1000 * 60 * 60 * 24));
       return d <= 7 && d >= -15;
     }).length;
-    const expPermits = permits.filter((p) => {
-      if (!p.expiryDate) return false;
+    const expPermits = (Array.isArray(permits) ? permits : []).filter((p) => {
+      if (!p || !p.expiryDate) return false;
       const d = Math.ceil((new Date(p.expiryDate) - today) / (1000 * 60 * 60 * 24));
       return d <= 7 && d >= -15;
     }).length;
-    const dues = customers.filter((c) => (c.dueAmount || 0) > 0).length;
+    const dues = (Array.isArray(customers) ? customers : []).filter((c) => c && (c.dueAmount || 0) > 0).length;
     return expInsurances + expPermits + dues;
   }, [insurances, permits, customers]);
 
