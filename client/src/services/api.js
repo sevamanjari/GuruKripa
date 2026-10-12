@@ -59,7 +59,18 @@ export const authStorage = {
   }
 };
 
-const request = async (endpoint, options = {}) => {
+let activePendingRequests = 0;
+let wakingTimer = null;
+
+const notifyWaking = (isWaking) => {
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(
+      new CustomEvent("gurukripa_server_waking", { detail: { isWaking } })
+    );
+  }
+};
+
+const request = async (endpoint, options = {}, retries = 1) => {
   const url = `${API_BASE}${endpoint}`;
   const token = authStorage.getToken();
 
@@ -70,6 +81,16 @@ const request = async (endpoint, options = {}) => {
 
   if (token) {
     headers["Authorization"] = `Bearer ${token}`;
+  }
+
+  // Detect slow response (Render cold start spin-up)
+  activePendingRequests++;
+  if (!wakingTimer) {
+    wakingTimer = setTimeout(() => {
+      if (activePendingRequests > 0) {
+        notifyWaking(true);
+      }
+    }, 2800); // If pending after 2.8s, Render is spinning up from idle
   }
 
   try {
@@ -94,11 +115,54 @@ const request = async (endpoint, options = {}) => {
     }
     return data;
   } catch (err) {
+    // If request failed due to Render cold start network reset, retry once
+    if (retries > 0 && err.name !== "AbortError" && !err.message.includes("401") && !err.message.includes("403")) {
+      console.warn(`🔄 Retrying [${endpoint}] in 2s (Render cold start recovery)...`);
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      return request(endpoint, options, retries - 1);
+    }
+
     if (endpoint !== "/auth/login") {
       console.error(`API Error on [${options.method || "GET"} ${endpoint}]:`, err.message);
     }
     throw err;
+  } finally {
+    activePendingRequests = Math.max(0, activePendingRequests - 1);
+    if (activePendingRequests === 0) {
+      if (wakingTimer) {
+        clearTimeout(wakingTimer);
+        wakingTimer = null;
+      }
+      notifyWaking(false);
+    }
   }
+};
+
+/**
+ * Client-side Keep-Alive
+ * While the browser tab is open, automatically pings the backend every 10 minutes
+ * so Render's 15-minute inactivity timer never triggers while someone is using the app.
+ */
+export const startClientKeepAlive = () => {
+  const TEN_MINUTES_MS = 10 * 60 * 1000;
+
+  const ping = () => {
+    if (typeof document !== "undefined" && !document.hidden) {
+      api.getHealth().catch(() => {});
+    }
+  };
+
+  const intervalId = setInterval(ping, TEN_MINUTES_MS);
+
+  if (typeof document !== "undefined") {
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden) {
+        ping();
+      }
+    });
+  }
+
+  return () => clearInterval(intervalId);
 };
 
 export const api = {

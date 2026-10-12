@@ -14,7 +14,7 @@ import PermitModal from "./components/Modals/PermitModal.jsx";
 import RenewModal from "./components/Modals/RenewModal.jsx";
 import UnderwriterManageModal from "./components/Modals/UnderwriterManageModal.jsx";
 
-import { api, authStorage } from "./services/api.js";
+import { api, authStorage, startClientKeepAlive } from "./services/api.js";
 
 const VALID_TABS = ["dashboard", "customers", "insurance", "permits", "reminders"];
 
@@ -22,6 +22,7 @@ export default function App() {
   // Session & Authentication state
   const [currentUser, setCurrentUser] = useState(() => authStorage.getUser());
   const [isAuthenticated, setIsAuthenticated] = useState(() => !!authStorage.getToken());
+  const [isServerWaking, setIsServerWaking] = useState(false);
 
   // URL Hash route synchronization
   const getTabFromHash = () => {
@@ -107,6 +108,21 @@ export default function App() {
 
     window.addEventListener("gurukripa_unauthorized", handleUnauthorized);
     return () => window.removeEventListener("gurukripa_unauthorized", handleUnauthorized);
+  }, []);
+
+  // Client Keep-Alive (every 10m) & Cold-Start Wake-Up listener
+  useEffect(() => {
+    const cleanupKeepAlive = startClientKeepAlive();
+
+    const handleServerWaking = (e) => {
+      setIsServerWaking(!!e.detail?.isWaking);
+    };
+
+    window.addEventListener("gurukripa_server_waking", handleServerWaking);
+    return () => {
+      cleanupKeepAlive();
+      window.removeEventListener("gurukripa_server_waking", handleServerWaking);
+    };
   }, []);
 
   // Load data only when authenticated
@@ -321,6 +337,27 @@ export default function App() {
 
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
+      {/* Render Free Tier Cold-Start Spin-Up Notification Banner */}
+      {isServerWaking && (
+        <div
+          style={{
+            background: "linear-gradient(90deg, #1e3a8a, #2563eb)",
+            color: "#ffffff",
+            padding: "8px 16px",
+            fontSize: "0.8rem",
+            fontWeight: 600,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "8px",
+            textAlign: "center"
+          }}
+        >
+          <span style={{ display: "inline-block", animation: "spin 1.5s linear infinite" }}>⚡</span>
+          <span>Connecting to cloud server (Render free tier waking up ~30s)... Please wait a moment.</span>
+        </div>
+      )}
+
       {/* Top Navbar */}
       <Navbar
         activeTab={activeTab}
