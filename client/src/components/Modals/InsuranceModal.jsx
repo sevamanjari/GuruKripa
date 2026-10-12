@@ -1,17 +1,19 @@
 import React, { useState, useEffect } from "react";
-import { X, Shield } from "lucide-react";
+import { X, Shield, IndianRupee, CheckCircle2, AlertCircle } from "lucide-react";
+import CustomerAutoFetchField from "../CustomerAutoFetchField.jsx";
 
 export default function InsuranceModal({
   isOpen,
   onClose,
   onSave,
   insurance,
+  customers = [],
   underwriters = [],
   onOpenManageUnderwriters
 }) {
   const [formData, setFormData] = useState({
-    customerName: "",
     customerPhone: "",
+    customerName: "",
     vehicleReg: "",
     insuranceCompany: "",
     policyNumber: "",
@@ -20,7 +22,8 @@ export default function InsuranceModal({
     expiryDate: "",
     idvAmount: "",
     ncbPercentage: 20,
-    premiumAmount: "",
+    totalAmount: "",
+    paidAmount: "",
     status: "Active",
     notes: ""
   });
@@ -29,22 +32,24 @@ export default function InsuranceModal({
 
   useEffect(() => {
     if (insurance) {
+      const tot = insurance.totalAmount ?? (insurance.premiumAmount ?? "");
+      const pd = insurance.paidAmount ?? (insurance.paymentStatus === "Paid" ? tot : "");
       setFormData({
-        customerName: insurance.customerName || "",
         customerPhone: insurance.customerPhone || "",
+        customerName: insurance.customerName || "",
         vehicleReg: insurance.vehicleReg || "",
         insuranceCompany: insurance.insuranceCompany || "",
         policyNumber: insurance.policyNumber || "",
         policyType: insurance.policyType || "Comprehensive",
-        startDate: insurance.startDate || "",
+        startDate: insurance.startDate || insurance.issueDate || "",
         expiryDate: insurance.expiryDate || "",
         idvAmount: insurance.idvAmount || "",
         ncbPercentage: insurance.ncbPercentage ?? 20,
-        premiumAmount: insurance.premiumAmount || "",
+        totalAmount: tot,
+        paidAmount: pd,
         status: insurance.status || "Active",
         notes: insurance.notes || ""
       });
-      // If the existing policy's underwriter isn't in underwriters list, enable custom view
       const existsInList = underwriters.some(
         (u) => u.name.toLowerCase() === (insurance.insuranceCompany || "").toLowerCase()
       );
@@ -55,12 +60,11 @@ export default function InsuranceModal({
       nextYear.setFullYear(nextYear.getFullYear() + 1);
       const nextYearStr = nextYear.toISOString().split("T")[0];
 
-      // Default to first registered underwriter if available, otherwise empty
       const defaultCompany = underwriters.length > 0 ? underwriters[0].name : "";
 
       setFormData({
-        customerName: "",
         customerPhone: "",
+        customerName: "",
         vehicleReg: "",
         insuranceCompany: defaultCompany,
         policyNumber: "",
@@ -69,7 +73,8 @@ export default function InsuranceModal({
         expiryDate: nextYearStr,
         idvAmount: "",
         ncbPercentage: 20,
-        premiumAmount: "",
+        totalAmount: "",
+        paidAmount: "",
         status: "Active",
         notes: ""
       });
@@ -79,10 +84,49 @@ export default function InsuranceModal({
 
   if (!isOpen) return null;
 
+  const total = Math.max(0, Number(formData.totalAmount) || 0);
+  const paid = Math.max(0, Number(formData.paidAmount) || 0);
+  const due = Math.max(0, total - paid);
+
+  let paymentBadge = null;
+  if (total > 0) {
+    if (due === 0) {
+      paymentBadge = {
+        label: "Fully Paid",
+        color: "var(--color-success, #16a34a)",
+        bg: "rgba(22, 163, 74, 0.1)"
+      };
+    } else if (paid > 0) {
+      paymentBadge = {
+        label: `Partially Paid (₹${due.toLocaleString("en-IN")} Due)`,
+        color: "var(--color-warning, #d97706)",
+        bg: "rgba(217, 119, 6, 0.1)"
+      };
+    } else {
+      paymentBadge = {
+        label: `Full Payment Due (₹${due.toLocaleString("en-IN")})`,
+        color: "var(--color-danger, #dc2626)",
+        bg: "rgba(220, 38, 38, 0.1)"
+      };
+    }
+  } else {
+    paymentBadge = {
+      label: "No Premium Set",
+      color: "var(--text-muted)",
+      bg: "var(--bg-secondary)"
+    };
+  }
+
+  const handleMarkFullPaid = () => {
+    if (total > 0) {
+      setFormData((prev) => ({ ...prev, paidAmount: total }));
+    }
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!formData.customerName.trim() || !formData.vehicleReg.trim() || !formData.policyNumber.trim()) {
-      alert("Customer Name, Vehicle Number, and Policy Number are required!");
+    if (!formData.customerPhone.trim() || !formData.customerName.trim() || !formData.vehicleReg.trim() || !formData.policyNumber.trim()) {
+      alert("Customer Phone (primary), Customer Name, Vehicle Number, and Policy Number are required!");
       return;
     }
     if (!formData.insuranceCompany.trim()) {
@@ -91,14 +135,21 @@ export default function InsuranceModal({
     }
     onSave({
       ...formData,
+      customerPhone: formData.customerPhone.trim(),
+      customerName: formData.customerName.trim(),
       insuranceCompany: formData.insuranceCompany.trim(),
-      vehicleId: formData.vehicleReg
+      vehicleId: formData.vehicleReg.trim().toUpperCase(),
+      vehicleReg: formData.vehicleReg.trim().toUpperCase(),
+      premiumAmount: total,
+      totalAmount: total,
+      paidAmount: paid,
+      dueAmount: due
     });
   };
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: "560px" }}>
+      <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: "580px" }}>
         <div className="modal-header">
           <div className="modal-title-wrap">
             <Shield size={18} color="var(--brand-primary)" />
@@ -113,37 +164,23 @@ export default function InsuranceModal({
 
         <form onSubmit={handleSubmit}>
           <div className="modal-body">
+            {/* Real-time Customer Mobile Auto-Fetch Field */}
+            <CustomerAutoFetchField
+              phone={formData.customerPhone}
+              name={formData.customerName}
+              onPhoneChange={(val) => setFormData((prev) => ({ ...prev, customerPhone: val }))}
+              onNameChange={(val) => setFormData((prev) => ({ ...prev, customerName: val }))}
+              customers={customers}
+              required
+            />
+
+            {/* Vehicle & Policy Details */}
             <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: "12px" }}>
               <div className="form-group">
-                <label className="form-label">Customer Name *</label>
+                <label className="form-label">Vehicle Registration No *</label>
                 <input
                   type="text"
                   className="form-input"
-                  required
-                  placeholder="e.g. Ramesh Chandra / Sharma Roadways"
-                  value={formData.customerName}
-                  onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
-                />
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Customer Phone</label>
-                <input
-                  type="text"
-                  className="form-input"
-                  placeholder="10-digit mobile"
-                  value={formData.customerPhone}
-                  onChange={(e) => setFormData({ ...formData, customerPhone: e.target.value })}
-                />
-              </div>
-            </div>
-
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-              <div className="form-group">
-                <label className="form-label">Vehicle Registration Number *</label>
-                <input
-                  type="text"
-                  className="form-input font-mono"
                   required
                   placeholder="e.g. MP 09 AB 1234"
                   value={formData.vehicleReg}
@@ -157,99 +194,54 @@ export default function InsuranceModal({
                   type="text"
                   className="form-input"
                   required
-                  placeholder="e.g. POL-MP-9842"
+                  placeholder="e.g. 2311/0491823/00"
                   value={formData.policyNumber}
                   onChange={(e) => setFormData({ ...formData, policyNumber: e.target.value })}
                 />
               </div>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: "12px" }}>
-              {/* Dynamic Insurance Underwriter based on user's dealings */}
-              <div className="form-group">
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
-                  <label className="form-label" style={{ margin: 0 }}>
-                    Insurance Underwriter *
-                  </label>
-                  {underwriters.length > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => setIsCustomMode(!isCustomMode)}
-                      style={{
-                        background: "none",
-                        border: "none",
-                        color: "var(--brand-primary)",
-                        fontSize: "0.74rem",
-                        fontWeight: 600,
-                        cursor: "pointer",
-                        padding: 0
-                      }}
-                    >
-                      {isCustomMode ? "Choose from list" : "+ Type custom"}
-                    </button>
-                  )}
-                </div>
-
-                {!isCustomMode && underwriters.length > 0 ? (
-                  <select
-                    className="form-select"
-                    required
-                    value={formData.insuranceCompany}
-                    onChange={(e) => {
-                      if (e.target.value === "__MANAGE__") {
-                        if (onOpenManageUnderwriters) onOpenManageUnderwriters();
-                      } else {
-                        setFormData({ ...formData, insuranceCompany: e.target.value });
-                      }
-                    }}
+            {/* Underwriter Company */}
+            <div className="form-group">
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
+                <label className="form-label" style={{ margin: 0 }}>Insurance Company / Underwriter *</label>
+                {underwriters.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setIsCustomMode(!isCustomMode)}
+                    style={{ background: "none", border: "none", color: "var(--brand-primary)", fontSize: "0.74rem", cursor: "pointer", textDecoration: "underline" }}
                   >
-                    <option value="">Select Underwriter Company...</option>
-                    {underwriters.map((u) => (
-                      <option key={u.id} value={u.name}>
-                        {u.name} {u.agencyCode ? `(Code: ${u.agencyCode})` : ""}
-                      </option>
-                    ))}
-                    {onOpenManageUnderwriters && (
-                      <option value="__MANAGE__">⚙️ Manage Underwriters...</option>
-                    )}
-                  </select>
-                ) : (
-                  <div>
-                    <input
-                      type="text"
-                      className="form-input"
-                      required
-                      list="underwriter-dealings-list"
-                      placeholder="Enter company (e.g. Tata AIG, Go Digit, Shriram)"
-                      value={formData.insuranceCompany}
-                      onChange={(e) => setFormData({ ...formData, insuranceCompany: e.target.value })}
-                    />
-                    <datalist id="underwriter-dealings-list">
-                      {underwriters.map((u) => (
-                        <option key={u.id} value={u.name} />
-                      ))}
-                    </datalist>
-                  </div>
-                )}
-                {underwriters.length === 0 && (
-                  <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginTop: "3px" }}>
-                    No hardcoded underwriters. Type your company name or{" "}
-                    {onOpenManageUnderwriters && (
-                      <a
-                        href="#manage"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          onOpenManageUnderwriters();
-                        }}
-                        style={{ color: "var(--brand-primary)", textDecoration: "underline", fontWeight: 600 }}
-                      >
-                        register dealing partners
-                      </a>
-                    )}
-                  </div>
+                    {isCustomMode ? "Choose from Underwriters" : "Custom / Other Company"}
+                  </button>
                 )}
               </div>
 
+              {!isCustomMode && underwriters.length > 0 ? (
+                <select
+                  className="form-select"
+                  value={formData.insuranceCompany}
+                  onChange={(e) => setFormData({ ...formData, insuranceCompany: e.target.value })}
+                  required
+                >
+                  <option value="" disabled>Select underwriter...</option>
+                  {underwriters.map((u) => (
+                    <option key={u.id} value={u.name}>{u.name}</option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder="e.g. Tata AIG, ICICI Lombard, New India Assurance..."
+                  value={formData.insuranceCompany}
+                  onChange={(e) => setFormData({ ...formData, insuranceCompany: e.target.value })}
+                  required
+                />
+              )}
+            </div>
+
+            {/* Dates & Coverage */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
               <div className="form-group">
                 <label className="form-label">Coverage Type</label>
                 <select
@@ -257,22 +249,11 @@ export default function InsuranceModal({
                   value={formData.policyType}
                   onChange={(e) => setFormData({ ...formData, policyType: e.target.value })}
                 >
-                  <option value="Comprehensive">Comprehensive (Full)</option>
-                  <option value="Third Party Only">Third Party Only</option>
-                  <option value="Own Damage">Standalone Own Damage</option>
+                  <option value="Comprehensive">Comprehensive Package</option>
+                  <option value="Third Party Only">Third Party (TP Only)</option>
+                  <option value="Zero Depreciation">Zero Depreciation (B2B)</option>
+                  <option value="Commercial Vehicle Goods">Commercial Vehicle Goods</option>
                 </select>
-              </div>
-            </div>
-
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-              <div className="form-group">
-                <label className="form-label">Start Date</label>
-                <input
-                  type="date"
-                  className="form-input"
-                  value={formData.startDate}
-                  onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                />
               </div>
 
               <div className="form-group">
@@ -287,13 +268,146 @@ export default function InsuranceModal({
               </div>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px" }}>
+            {/* Payment & Due Tracking Card */}
+            <div
+              style={{
+                marginTop: "4px",
+                marginBottom: "14px",
+                padding: "14px",
+                borderRadius: "8px",
+                background: "var(--bg-secondary, #f8fafc)",
+                border: "1px solid var(--border-default, #e2e8f0)"
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: "8px"
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: "0.78rem",
+                    fontWeight: 700,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.05em",
+                    color: "var(--brand-primary)",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px"
+                  }}
+                >
+                  <IndianRupee size={14} />
+                  <span>Monetary & Due Insights</span>
+                </div>
+
+                {total > 0 && paid < total && (
+                  <button
+                    type="button"
+                    onClick={handleMarkFullPaid}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      color: "var(--brand-primary)",
+                      fontSize: "0.74rem",
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      padding: 0,
+                      textDecoration: "underline"
+                    }}
+                  >
+                    Mark Fully Paid
+                  </button>
+                )}
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+                <div className="form-group" style={{ marginBottom: "6px" }}>
+                  <label className="form-label" style={{ fontSize: "0.76rem" }}>
+                    Total Premium Amount (₹) *
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    className="form-input"
+                    placeholder="Total Premium in ₹"
+                    value={formData.totalAmount}
+                    onChange={(e) => setFormData({ ...formData, totalAmount: e.target.value })}
+                  />
+                </div>
+
+                <div className="form-group" style={{ marginBottom: "6px" }}>
+                  <label className="form-label" style={{ fontSize: "0.76rem" }}>
+                    Amount Paid by Customer (₹)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    className="form-input"
+                    placeholder="Paid in ₹"
+                    value={formData.paidAmount}
+                    onChange={(e) => setFormData({ ...formData, paidAmount: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              {/* Dynamic Due Balance Display */}
+              <div
+                style={{
+                  marginTop: "6px",
+                  padding: "8px 12px",
+                  borderRadius: "6px",
+                  background: "#ffffff",
+                  border: "1px solid var(--border-default, #e2e8f0)",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center"
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>
+                    Outstanding Policy Due:
+                  </div>
+                  <div
+                    style={{
+                      fontSize: "1.05rem",
+                      fontWeight: 700,
+                      color: due > 0 ? "var(--color-danger, #dc2626)" : "var(--color-success, #16a34a)"
+                    }}
+                  >
+                    ₹{due.toLocaleString("en-IN")}
+                  </div>
+                </div>
+
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "4px",
+                    padding: "3px 8px",
+                    borderRadius: "999px",
+                    fontSize: "0.74rem",
+                    fontWeight: 600,
+                    color: paymentBadge.color,
+                    background: paymentBadge.bg
+                  }}
+                >
+                  {due === 0 && total > 0 ? <CheckCircle2 size={12} /> : <AlertCircle size={12} />}
+                  {paymentBadge.label}
+                </span>
+              </div>
+            </div>
+
+            {/* IDV & NCB */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
               <div className="form-group">
                 <label className="form-label">IDV Value (₹)</label>
                 <input
                   type="number"
                   className="form-input"
-                  placeholder="e.g. 2500000"
+                  placeholder="Insured Declared Value"
                   value={formData.idvAmount}
                   onChange={(e) => setFormData({ ...formData, idvAmount: e.target.value })}
                 />
@@ -304,30 +418,20 @@ export default function InsuranceModal({
                 <input
                   type="number"
                   className="form-input"
-                  placeholder="e.g. 25"
+                  placeholder="0, 20, 25, 35, 50"
                   value={formData.ncbPercentage}
                   onChange={(e) => setFormData({ ...formData, ncbPercentage: e.target.value })}
                 />
               </div>
-
-              <div className="form-group">
-                <label className="form-label">Premium / Fee (₹)</label>
-                <input
-                  type="number"
-                  className="form-input"
-                  placeholder="e.g. 24000"
-                  value={formData.premiumAmount}
-                  onChange={(e) => setFormData({ ...formData, premiumAmount: e.target.value })}
-                />
-              </div>
             </div>
 
+            {/* Notes */}
             <div className="form-group">
-              <label className="form-label">Operational Notes / Terms</label>
+              <label className="form-label">Notes & Remarks (Optional)</label>
               <textarea
                 className="form-textarea"
                 rows="2"
-                placeholder="Policy endorsements, financier hypothecation note, cashless garage conditions..."
+                placeholder="Agent commission, financier endorsement, chassis / engine no notes..."
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               />
@@ -335,11 +439,12 @@ export default function InsuranceModal({
           </div>
 
           <div className="modal-footer">
-            <button type="button" className="btn btn-secondary btn-sm" onClick={onClose}>
+            <button type="button" className="btn btn-secondary" onClick={onClose}>
               Cancel
             </button>
-            <button type="submit" className="btn btn-primary btn-sm">
-              <span>{insurance ? "Update Policy" : "Save Insurance Entry"}</span>
+            <button type="submit" className="btn btn-primary">
+              <Shield size={16} />
+              <span>{insurance ? "Update Policy" : "Issue Policy Record"}</span>
             </button>
           </div>
         </form>

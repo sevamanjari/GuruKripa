@@ -103,12 +103,37 @@ export const createVehicle = (req, res) => {
       status
     } = req.body;
 
-    if (!regNumber || !customerId) {
-      return res.status(400).json({ success: false, error: "Registration Number and Customer are required." });
+    const data = loadData();
+
+    let customer = null;
+    if (customerId) {
+      customer = (data.customers || []).find((c) => c.id === customerId);
+    }
+    if (!customer && req.body.customerPhone) {
+      const cleanPhone = req.body.customerPhone.trim();
+      customer = (data.customers || []).find(
+        (c) => c.phone && c.phone.trim().toLowerCase() === cleanPhone.toLowerCase()
+      );
+      if (!customer && (req.body.customerName || req.body.customerPhone)) {
+        customer = {
+          id: `CUST-${Date.now().toString().slice(-4)}`,
+          name: (req.body.customerName || "Customer").trim(),
+          phone: cleanPhone,
+          email: "",
+          address: "",
+          totalAmount: 0,
+          paidAmount: 0,
+          dueAmount: 0,
+          paymentStatus: "No Charges",
+          notes: "Auto-registered via Vehicle fleet entry",
+          createdAt: new Date().toISOString()
+        };
+        data.customers.unshift(customer);
+      }
     }
 
-    const data = loadData();
-    const customer = (data.customers || []).find((c) => c.id === customerId);
+    const resolvedCustomerId = customer ? customer.id : (customerId || "CUST-DEFAULT");
+    const resolvedCustomerName = customer ? customer.name : (req.body.customerName || "Customer");
 
     // Normalize reg number MP 09 GH 1234
     const cleanReg = regNumber.toUpperCase().trim();
@@ -122,8 +147,9 @@ export const createVehicle = (req, res) => {
     const newVehicle = {
       id: newId,
       regNumber: cleanReg,
-      customerId,
-      customerName: customer ? customer.name : "Unknown Customer",
+      customerId: resolvedCustomerId,
+      customerName: resolvedCustomerName,
+      customerPhone: customer?.phone || req.body.customerPhone || "",
       vehicleType: vehicleType || "Heavy Commercial Truck (16-Wheel)",
       make: (make || "Tata Motors").trim(),
       model: (model || "Commercial Vehicle").trim(),

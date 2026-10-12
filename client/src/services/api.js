@@ -156,5 +156,12 @@ export const api = {
   createPermit: (data) => request("/permits", { method: "POST", body: JSON.stringify(data) }),
   updatePermit: (id, data) => request(`/permits/${id}`, { method: "PUT", body: JSON.stringify(data) }),
   deletePermit: (id) => request(`/permits/${id}`, { method: "DELETE" }),
-  renewPermit: (id, data) => request(`/permits/${id}/renew`, { method: "POST", body: JSON.stringify(data) })
+  renewPermit: (id, data) => request(`/permits/${id}/renew`, { method: "POST", body: JSON.stringify(data) }),
+
+  // WhatsApp Automated Reminders
+  getReminderStatus: () => request("/reminders/status"),
+  getUpcomingReminders: (days = 7) => request(`/reminders/upcoming?days=${days}`),
+  getReminderLogs: () => request("/reminders/logs"),
+  triggerAutoScan: (days = 7) => request("/reminders/scan", { method: "POST", body: JSON.stringify({ days }) }),
+  sendSingleReminder: (data) => request("/reminders/send", { method: "POST", body: JSON.stringify(data) })
 };

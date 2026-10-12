@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { X, Truck, Save } from "lucide-react";
+import CustomerAutoFetchField from "../CustomerAutoFetchField.jsx";
 
 export default function VehicleModal({ isOpen, onClose, onSave, vehicle, customers = [] }) {
   const [formData, setFormData] = useState({
     regNumber: "",
     customerId: "",
+    customerPhone: "",
+    customerName: "",
     vehicleType: "Heavy Commercial Truck (16-Wheel)",
     make: "Tata Motors",
     model: "Signa 4825.TK Heavy Truck",
@@ -22,9 +25,12 @@ export default function VehicleModal({ isOpen, onClose, onSave, vehicle, custome
 
   useEffect(() => {
     if (vehicle) {
+      const foundCust = customers.find((c) => c.id === vehicle.customerId) || {};
       setFormData({
         regNumber: vehicle.regNumber || "",
-        customerId: vehicle.customerId || (customers[0]?.id || ""),
+        customerId: vehicle.customerId || "",
+        customerPhone: vehicle.customerPhone || foundCust.phone || "",
+        customerName: vehicle.customerName || foundCust.name || "",
         vehicleType: vehicle.vehicleType || "Heavy Commercial Truck (16-Wheel)",
         make: vehicle.make || "Tata Motors",
         model: vehicle.model || "",
@@ -50,7 +56,9 @@ export default function VehicleModal({ isOpen, onClose, onSave, vehicle, custome
 
       setFormData({
         regNumber: "",
-        customerId: customers[0]?.id || "",
+        customerId: "",
+        customerPhone: "",
+        customerName: "",
         vehicleType: "Heavy Commercial Truck (16-Wheel)",
         make: "Tata Motors",
         model: "Signa 4825.TK Heavy Truck",
@@ -76,8 +84,8 @@ export default function VehicleModal({ isOpen, onClose, onSave, vehicle, custome
       alert("Registration Number is required!");
       return;
     }
-    if (!formData.customerId) {
-      alert("Please select a Customer / Transporter!");
+    if (!formData.customerPhone.trim() && !formData.customerId) {
+      alert("Please provide the Customer / Transporter Mobile Number!");
       return;
     }
     onSave(formData);
@@ -100,34 +108,36 @@ export default function VehicleModal({ isOpen, onClose, onSave, vehicle, custome
 
         <form onSubmit={handleSubmit}>
           <div className="modal-body" style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-              <div className="form-group">
-                <label className="form-label">Registration Number *</label>
-                <input
-                  type="text"
-                  className="form-input"
-                  required
-                  placeholder="e.g. MP 09 GH 4521"
-                  value={formData.regNumber}
-                  onChange={(e) => setFormData({ ...formData, regNumber: e.target.value.toUpperCase() })}
-                />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Transporter / Owner *</label>
-                <select
-                  className="form-select"
-                  required
-                  value={formData.customerId}
-                  onChange={(e) => setFormData({ ...formData, customerId: e.target.value })}
-                >
-                  <option value="">-- Select Transporter --</option>
-                  {customers.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name} ({c.city})
-                    </option>
-                  ))}
-                </select>
-              </div>
+            {/* Auto-Fetch Customer by Mobile Number */}
+            <CustomerAutoFetchField
+              phone={formData.customerPhone}
+              name={formData.customerName}
+              onPhoneChange={(val) => setFormData((prev) => ({ ...prev, customerPhone: val }))}
+              onNameChange={(val) => setFormData((prev) => ({ ...prev, customerName: val }))}
+              onCustomerSelect={(c) => {
+                if (c) {
+                  setFormData((prev) => ({
+                    ...prev,
+                    customerId: c.id,
+                    customerName: c.name,
+                    customerPhone: c.phone
+                  }));
+                }
+              }}
+              customers={customers}
+              required={true}
+            />
+
+            <div className="form-group">
+              <label className="form-label">Registration Number *</label>
+              <input
+                type="text"
+                className="form-input"
+                required
+                placeholder="e.g. MP 09 GH 4521"
+                value={formData.regNumber}
+                onChange={(e) => setFormData({ ...formData, regNumber: e.target.value.toUpperCase() })}
+              />
             </div>
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>

@@ -11,17 +11,68 @@ const computeStatus = (expiryDate) => {
   return "Active";
 };
 
+const computePayment = (total, paid) => {
+  const t = Math.max(0, Number(total) || 0);
+  const p = Math.max(0, Number(paid) || 0);
+  const due = Math.max(0, t - p);
+  let status = "No Charges";
+  if (t > 0) {
+    if (due === 0) status = "Paid";
+    else if (p > 0) status = "Partial";
+    else status = "Due";
+  }
+  return { totalAmount: t, paidAmount: p, dueAmount: due, paymentStatus: status };
+};
+
+// Helper to ensure customer exists and is linked by primary phone number
+const linkOrCreateCustomer = (data, phone, name) => {
+  if (!phone) return null;
+  const cleanPhone = phone.trim();
+  const cleanName = (name || "Customer").trim();
+
+  let customer = (data.customers || []).find(
+    (c) => c.phone && c.phone.trim().toLowerCase() === cleanPhone.toLowerCase()
+  );
+
+  if (!customer && cleanName) {
+    customer = {
+      id: `CUST-${Date.now().toString().slice(-4)}`,
+      name: cleanName,
+      phone: cleanPhone,
+      email: "",
+      address: "",
+      totalAmount: 0,
+      paidAmount: 0,
+      dueAmount: 0,
+      paymentStatus: "No Charges",
+      notes: "Auto-registered via Insurance entry",
+      createdAt: new Date().toISOString()
+    };
+    data.customers.unshift(customer);
+  }
+  return customer;
+};
+
 export const getInsurances = (req, res) => {
   try {
     const data = loadData();
     let insurances = data.insurances || [];
-    const { search, status, vehicleId, customerId } = req.query;
+    const { search, status, paymentStatus, vehicleId, customerId, customerPhone } = req.query;
 
     // Recalculate dynamic status based on current date
-    insurances = insurances.map((item) => ({
-      ...item,
-      computedStatus: computeStatus(item.expiryDate)
-    }));
+    insurances = insurances.map((item) => {
+      const total = item.totalAmount !== undefined ? item.totalAmount : (item.premiumAmount || 0);
+      const paid = item.paidAmount || 0;
+      const payment = computePayment(total, paid);
+      return {
+        ...item,
+        totalAmount: payment.totalAmount,
+        paidAmount: payment.paidAmount,
+        dueAmount: payment.dueAmount,
+        paymentStatus: item.paymentStatus || payment.paymentStatus,
+        computedStatus: computeStatus(item.expiryDate)
+      };
+    });
 
     if (search) {
       const q = search.toLowerCase().trim();
@@ -30,6 +81,7 @@ export const getInsurances = (req, res) => {
           i.policyNumber.toLowerCase().includes(q) ||
           i.vehicleReg.toLowerCase().includes(q) ||
           (i.customerName && i.customerName.toLowerCase().includes(q)) ||
+          (i.customerPhone && i.customerPhone.toLowerCase().includes(q)) ||
           i.insuranceCompany.toLowerCase().includes(q) ||
           (i.coverageType && i.coverageType.toLowerCase().includes(q))
       );
@@ -39,12 +91,24 @@ export const getInsurances = (req, res) => {
       insurances = insurances.filter((i) => (i.computedStatus || i.status) === status);
     }
 
+    if (paymentStatus && paymentStatus !== "All") {
+      if (paymentStatus === "Due") {
+        insurances = insurances.filter((i) => (Number(i.dueAmount) || 0) > 0);
+      } else {
+        insurances = insurances.filter((i) => i.paymentStatus === paymentStatus);
+      }
+    }
+
     if (vehicleId) {
       insurances = insurances.filter((i) => i.vehicleId === vehicleId);
     }
 
     if (customerId) {
       insurances = insurances.filter((i) => i.customerId === customerId);
+    }
+
+    if (customerPhone) {
+      insurances = insurances.filter((i) => (i.customerPhone || "").trim() === customerPhone.trim());
     }
 
     res.json({
@@ -66,10 +130,18 @@ export const getInsuranceById = (req, res) => {
       return res.status(404).json({ success: false, error: "Insurance record not found" });
     }
 
+    const total = insurance.totalAmount !== undefined ? insurance.totalAmount : (insurance.premiumAmount || 0);
+    const paid = insurance.paidAmount || 0;
+    const payment = computePayment(total, paid);
+
     res.json({
       success: true,
       data: {
         ...insurance,
+        totalAmount: payment.totalAmount,
+        paidAmount: payment.paidAmount,
+        dueAmount: payment.dueAmount,
+        paymentStatus: insurance.paymentStatus || payment.paymentStatus,
         computedStatus: computeStatus(insurance.expiryDate)
       }
     });
@@ -83,12 +155,16 @@ export const createInsurance = (req, res) => {
     const {
       policyNumber,
       vehicleId,
+      customerName,
+      customerPhone,
       insuranceCompany,
       coverageType,
       issueDate,
       expiryDate,
       idvAmount,
       premiumAmount,
+      totalAmount,
+      paidAmount,
       ncbPercentage,
       notes
     } = req.body;
@@ -102,26 +178,37 @@ export const createInsurance = (req, res) => {
     }
 
     const data = loadData();
-    const vehicle = (data.vehicles || []).find((v) => v.id === vehicleId || v.regNumber === vehicleId);
-    const customer = vehicle ? (data.customers || []).find((c) => c.id === vehicle.customerId) : null;
+    const cleanPhone = (customerPhone || "").trim();
+    const cleanName = (customerName || "").trim();
+
+    // Primary link via customer phone
+    const customer = linkOrCreateCustomer(data, cleanPhone, cleanName);
 
     const newId = `INS-${Date.now().toString().slice(-4)}`;
     const status = computeStatus(expiryDate);
 
+    const total = Number(totalAmount !== undefined ? totalAmount : premiumAmount) || 0;
+    const paid = Number(paidAmount) || 0;
+    const payment = computePayment(total, paid);
+
     const newInsurance = {
       id: newId,
       policyNumber: policyNumber.trim().toUpperCase(),
-      vehicleId: vehicle ? vehicle.id : (req.body.vehicleReg || vehicleId),
-      vehicleReg: (req.body.vehicleReg || (vehicle ? vehicle.regNumber : vehicleId)).toUpperCase().trim(),
-      customerId: vehicle ? vehicle.customerId : (customer ? customer.id : ""),
-      customerName: req.body.customerName || (customer ? customer.name : (vehicle ? vehicle.customerName : "Customer")),
-      customerPhone: req.body.customerPhone || (customer ? customer.phone : ""),
+      vehicleId: effVehicleId.trim().toUpperCase(),
+      vehicleReg: (req.body.vehicleReg || effVehicleId).toUpperCase().trim(),
+      customerId: customer ? customer.id : (req.body.customerId || ""),
+      customerName: cleanName || (customer ? customer.name : "Customer"),
+      customerPhone: cleanPhone,
       insuranceCompany: insuranceCompany.trim(),
       coverageType: coverageType || "Comprehensive Package",
       issueDate: issueDate || new Date().toISOString().split("T")[0],
       expiryDate,
       idvAmount: Number(idvAmount) || 0,
-      premiumAmount: Number(premiumAmount) || 0,
+      premiumAmount: total,
+      totalAmount: payment.totalAmount,
+      paidAmount: payment.paidAmount,
+      dueAmount: payment.dueAmount,
+      paymentStatus: payment.paymentStatus,
       ncbPercentage: Number(ncbPercentage) || 0,
       status,
       notes: (notes || "").trim(),
@@ -152,18 +239,14 @@ export const updateInsurance = (req, res) => {
     }
 
     const current = data.insurances[idx];
-    let vehicleReg = current.vehicleReg;
-    let customerId = current.customerId;
-    let customerName = current.customerName;
+    const cleanPhone = req.body.customerPhone !== undefined ? (req.body.customerPhone || "").trim() : current.customerPhone;
+    const cleanName = req.body.customerName !== undefined ? (req.body.customerName || "").trim() : current.customerName;
 
-    if (req.body.vehicleId && req.body.vehicleId !== current.vehicleId) {
-      const vehicle = (data.vehicles || []).find((v) => v.id === req.body.vehicleId);
-      if (vehicle) {
-        vehicleReg = vehicle.regNumber;
-        customerId = vehicle.customerId;
-        customerName = vehicle.customerName;
-      }
-    }
+    const customer = linkOrCreateCustomer(data, cleanPhone, cleanName);
+
+    const total = Number(req.body.totalAmount !== undefined ? req.body.totalAmount : (req.body.premiumAmount !== undefined ? req.body.premiumAmount : (current.totalAmount || current.premiumAmount))) || 0;
+    const paid = Number(req.body.paidAmount !== undefined ? req.body.paidAmount : (current.paidAmount || 0)) || 0;
+    const payment = computePayment(total, paid);
 
     const expiry = req.body.expiryDate || current.expiryDate;
     const updatedStatus = computeStatus(expiry);
@@ -171,9 +254,14 @@ export const updateInsurance = (req, res) => {
     const updated = {
       ...current,
       ...req.body,
-      vehicleReg,
-      customerId,
-      customerName,
+      customerId: customer ? customer.id : current.customerId,
+      customerName: cleanName || (customer ? customer.name : current.customerName),
+      customerPhone: cleanPhone,
+      premiumAmount: total,
+      totalAmount: payment.totalAmount,
+      paidAmount: payment.paidAmount,
+      dueAmount: payment.dueAmount,
+      paymentStatus: payment.paymentStatus,
       status: updatedStatus,
       id
     };
@@ -217,7 +305,7 @@ export const deleteInsurance = (req, res) => {
 export const renewInsurance = (req, res) => {
   try {
     const { id } = req.params;
-    const { newPolicyNumber, newPremiumAmount, newIdvAmount, newNcbPercentage } = req.body;
+    const { newPolicyNumber, newPremiumAmount, newPaidAmount, newIdvAmount, newNcbPercentage } = req.body;
     const data = loadData();
     const idx = (data.insurances || []).findIndex((i) => i.id === id);
 
@@ -242,6 +330,10 @@ export const renewInsurance = (req, res) => {
       issueDate: current.issueDate || current.startDate,
       expiryDate: current.expiryDate,
       premiumAmount: current.premiumAmount,
+      totalAmount: current.totalAmount || current.premiumAmount,
+      paidAmount: current.paidAmount || 0,
+      dueAmount: current.dueAmount || 0,
+      paymentStatus: current.paymentStatus || "Paid",
       idvAmount: current.idvAmount,
       ncbPercentage: current.ncbPercentage,
       renewedOn: new Date().toISOString().split("T")[0],
@@ -251,12 +343,20 @@ export const renewInsurance = (req, res) => {
     const history = Array.isArray(current.renewalHistory) ? [...current.renewalHistory] : [];
     history.unshift(oldSnapshot);
 
+    const total = newPremiumAmount ? Number(newPremiumAmount) : (current.totalAmount || current.premiumAmount);
+    const paid = newPaidAmount !== undefined ? Number(newPaidAmount) : total;
+    const payment = computePayment(total, paid);
+
     const renewed = {
       ...current,
       policyNumber: newPolicyNumber || `${current.policyNumber}-RNW`,
       issueDate: startDate,
       expiryDate: newExpiry,
-      premiumAmount: newPremiumAmount ? Number(newPremiumAmount) : current.premiumAmount,
+      premiumAmount: total,
+      totalAmount: payment.totalAmount,
+      paidAmount: payment.paidAmount,
+      dueAmount: payment.dueAmount,
+      paymentStatus: payment.paymentStatus,
       idvAmount: newIdvAmount ? Number(newIdvAmount) : current.idvAmount,
       ncbPercentage: newNcbPercentage !== undefined ? Number(newNcbPercentage) : Math.min(50, (current.ncbPercentage || 20) + 5),
       status: "Active",

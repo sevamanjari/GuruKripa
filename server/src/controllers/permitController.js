@@ -11,16 +11,67 @@ const computePermitStatus = (expiryDate) => {
   return "Active";
 };
 
+const computePayment = (total, paid) => {
+  const t = Math.max(0, Number(total) || 0);
+  const p = Math.max(0, Number(paid) || 0);
+  const due = Math.max(0, t - p);
+  let status = "No Charges";
+  if (t > 0) {
+    if (due === 0) status = "Paid";
+    else if (p > 0) status = "Partial";
+    else status = "Due";
+  }
+  return { totalAmount: t, paidAmount: p, dueAmount: due, paymentStatus: status };
+};
+
+// Helper to ensure customer exists and is linked by primary phone number
+const linkOrCreateCustomer = (data, phone, name) => {
+  if (!phone) return null;
+  const cleanPhone = phone.trim();
+  const cleanName = (name || "Customer").trim();
+
+  let customer = (data.customers || []).find(
+    (c) => c.phone && c.phone.trim().toLowerCase() === cleanPhone.toLowerCase()
+  );
+
+  if (!customer && cleanName) {
+    customer = {
+      id: `CUST-${Date.now().toString().slice(-4)}`,
+      name: cleanName,
+      phone: cleanPhone,
+      email: "",
+      address: "",
+      totalAmount: 0,
+      paidAmount: 0,
+      dueAmount: 0,
+      paymentStatus: "No Charges",
+      notes: "Auto-registered via Permit entry",
+      createdAt: new Date().toISOString()
+    };
+    data.customers.unshift(customer);
+  }
+  return customer;
+};
+
 export const getPermits = (req, res) => {
   try {
     const data = loadData();
     let permits = data.permits || [];
-    const { search, type, status, vehicleId, customerId } = req.query;
+    const { search, status, paymentStatus, vehicleId, customerId, customerPhone } = req.query;
 
-    permits = permits.map((item) => ({
-      ...item,
-      computedStatus: computePermitStatus(item.expiryDate)
-    }));
+    permits = permits.map((item) => {
+      const total = item.totalAmount !== undefined ? item.totalAmount : (item.authFeePaid || 0);
+      const paid = item.paidAmount || 0;
+      const payment = computePayment(total, paid);
+      return {
+        ...item,
+        totalAmount: payment.totalAmount,
+        paidAmount: payment.paidAmount,
+        dueAmount: payment.dueAmount,
+        paymentStatus: item.paymentStatus || payment.paymentStatus,
+        computedStatus: computePermitStatus(item.expiryDate)
+      };
+    });
 
     if (search) {
       const q = search.toLowerCase().trim();
@@ -29,17 +80,22 @@ export const getPermits = (req, res) => {
           p.permitNumber.toLowerCase().includes(q) ||
           p.vehicleReg.toLowerCase().includes(q) ||
           (p.customerName && p.customerName.toLowerCase().includes(q)) ||
+          (p.customerPhone && p.customerPhone.toLowerCase().includes(q)) ||
           p.permitType.toLowerCase().includes(q) ||
-          (p.issuingRto && p.issuingRto.toLowerCase().includes(q))
+          p.state.toLowerCase().includes(q)
       );
-    }
-
-    if (type && type !== "All") {
-      permits = permits.filter((p) => p.permitType === type);
     }
 
     if (status && status !== "All") {
       permits = permits.filter((p) => (p.computedStatus || p.status) === status);
+    }
+
+    if (paymentStatus && paymentStatus !== "All") {
+      if (paymentStatus === "Due") {
+        permits = permits.filter((p) => (Number(p.dueAmount) || 0) > 0);
+      } else {
+        permits = permits.filter((p) => p.paymentStatus === paymentStatus);
+      }
     }
 
     if (vehicleId) {
@@ -48,6 +104,10 @@ export const getPermits = (req, res) => {
 
     if (customerId) {
       permits = permits.filter((p) => p.customerId === customerId);
+    }
+
+    if (customerPhone) {
+      permits = permits.filter((p) => (p.customerPhone || "").trim() === customerPhone.trim());
     }
 
     res.json({
@@ -69,10 +129,18 @@ export const getPermitById = (req, res) => {
       return res.status(404).json({ success: false, error: "Permit not found" });
     }
 
+    const total = permit.totalAmount !== undefined ? permit.totalAmount : (permit.authFeePaid || 0);
+    const paid = permit.paidAmount || 0;
+    const payment = computePayment(total, paid);
+
     res.json({
       success: true,
       data: {
         ...permit,
+        totalAmount: payment.totalAmount,
+        paidAmount: payment.paidAmount,
+        dueAmount: payment.dueAmount,
+        paymentStatus: permit.paymentStatus || payment.paymentStatus,
         computedStatus: computePermitStatus(permit.expiryDate)
       }
     });
@@ -86,12 +154,17 @@ export const createPermit = (req, res) => {
     const {
       permitNumber,
       vehicleId,
+      customerName,
+      customerPhone,
       permitType,
       issueDate,
       expiryDate,
       issuingRto,
       authorizedStates,
+      state,
       authFeePaid,
+      totalAmount,
+      paidAmount,
       notes
     } = req.body;
 
@@ -104,26 +177,38 @@ export const createPermit = (req, res) => {
     }
 
     const data = loadData();
-    const vehicle = (data.vehicles || []).find((v) => v.id === vehicleId || v.regNumber === vehicleId);
-    const customer = vehicle ? (data.customers || []).find((c) => c.id === vehicle.customerId) : null;
+    const cleanPhone = (customerPhone || "").trim();
+    const cleanName = (customerName || "").trim();
+
+    // Primary link via customer phone
+    const customer = linkOrCreateCustomer(data, cleanPhone, cleanName);
 
     const newId = `PERM-${Date.now().toString().slice(-4)}`;
     const status = computePermitStatus(expiryDate);
 
+    const total = Number(totalAmount !== undefined ? totalAmount : authFeePaid) || 0;
+    const paid = Number(paidAmount) || 0;
+    const payment = computePayment(total, paid);
+
     const newPermit = {
       id: newId,
       permitNumber: permitNumber.trim().toUpperCase(),
-      vehicleId: vehicle ? vehicle.id : (req.body.vehicleReg || vehicleId),
-      vehicleReg: (req.body.vehicleReg || (vehicle ? vehicle.regNumber : vehicleId)).toUpperCase().trim(),
-      customerId: vehicle ? vehicle.customerId : (customer ? customer.id : ""),
-      customerName: req.body.customerName || (customer ? customer.name : (vehicle ? vehicle.customerName : "Customer")),
-      customerPhone: req.body.customerPhone || (customer ? customer.phone : ""),
+      vehicleId: effVehicleId.trim().toUpperCase(),
+      vehicleReg: (req.body.vehicleReg || effVehicleId).toUpperCase().trim(),
+      customerId: customer ? customer.id : (req.body.customerId || ""),
+      customerName: cleanName || (customer ? customer.name : "Customer"),
+      customerPhone: cleanPhone,
       permitType: permitType.trim(),
       issueDate: issueDate || new Date().toISOString().split("T")[0],
       expiryDate,
       issuingRto: issuingRto || "RTO Indore (MP-09)",
       authorizedStates: authorizedStates || "All India (National Permit)",
-      authFeePaid: Number(authFeePaid) || 16500,
+      state: state || "All India",
+      authFeePaid: total,
+      totalAmount: payment.totalAmount,
+      paidAmount: payment.paidAmount,
+      dueAmount: payment.dueAmount,
+      paymentStatus: payment.paymentStatus,
       status,
       notes: (notes || "").trim(),
       createdAt: new Date().toISOString()
@@ -153,18 +238,14 @@ export const updatePermit = (req, res) => {
     }
 
     const current = data.permits[idx];
-    let vehicleReg = current.vehicleReg;
-    let customerId = current.customerId;
-    let customerName = current.customerName;
+    const cleanPhone = req.body.customerPhone !== undefined ? (req.body.customerPhone || "").trim() : current.customerPhone;
+    const cleanName = req.body.customerName !== undefined ? (req.body.customerName || "").trim() : current.customerName;
 
-    if (req.body.vehicleId && req.body.vehicleId !== current.vehicleId) {
-      const vehicle = (data.vehicles || []).find((v) => v.id === req.body.vehicleId);
-      if (vehicle) {
-        vehicleReg = vehicle.regNumber;
-        customerId = vehicle.customerId;
-        customerName = vehicle.customerName;
-      }
-    }
+    const customer = linkOrCreateCustomer(data, cleanPhone, cleanName);
+
+    const total = Number(req.body.totalAmount !== undefined ? req.body.totalAmount : (req.body.authFeePaid !== undefined ? req.body.authFeePaid : (current.totalAmount || current.authFeePaid))) || 0;
+    const paid = Number(req.body.paidAmount !== undefined ? req.body.paidAmount : (current.paidAmount || 0)) || 0;
+    const payment = computePayment(total, paid);
 
     const expiry = req.body.expiryDate || current.expiryDate;
     const updatedStatus = computePermitStatus(expiry);
@@ -172,9 +253,14 @@ export const updatePermit = (req, res) => {
     const updated = {
       ...current,
       ...req.body,
-      vehicleReg,
-      customerId,
-      customerName,
+      customerId: customer ? customer.id : current.customerId,
+      customerName: cleanName || (customer ? customer.name : current.customerName),
+      customerPhone: cleanPhone,
+      authFeePaid: total,
+      totalAmount: payment.totalAmount,
+      paidAmount: payment.paidAmount,
+      dueAmount: payment.dueAmount,
+      paymentStatus: payment.paymentStatus,
       status: updatedStatus,
       id
     };
@@ -218,7 +304,7 @@ export const deletePermit = (req, res) => {
 export const renewPermit = (req, res) => {
   try {
     const { id } = req.params;
-    const { newPermitNumber, newAuthFeePaid, newExpiryDate } = req.body;
+    const { newPermitNumber, newExpiryDate, newAuthFeePaid, newPaidAmount } = req.body;
     const data = loadData();
     const idx = (data.permits || []).findIndex((p) => p.id === id);
 
@@ -227,24 +313,24 @@ export const renewPermit = (req, res) => {
     }
 
     const current = data.permits[idx];
-    const baseDate = new Date(current.expiryDate) > new Date() ? new Date(current.expiryDate) : new Date();
-    const startDate = baseDate.toISOString().split("T")[0];
 
-    let newExpiry = newExpiryDate;
-    if (!newExpiry) {
-      const nextYear = new Date(baseDate);
-      nextYear.setFullYear(nextYear.getFullYear() + 1);
-      newExpiry = nextYear.toISOString().split("T")[0];
-    }
+    const baseExpiry = current.expiryDate ? new Date(current.expiryDate) : new Date();
+    const nextYear = new Date(baseExpiry);
+    nextYear.setFullYear(nextYear.getFullYear() + 1);
+    const calculatedExpiry = nextYear.toISOString().split("T")[0];
 
     const oldSnapshot = {
       id: `HIST-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
       permitNumber: current.permitNumber,
       permitType: current.permitType,
       state: current.state,
-      issueDate: current.issueDate || current.startDate,
+      issueDate: current.issueDate,
       expiryDate: current.expiryDate,
       authFeePaid: current.authFeePaid,
+      totalAmount: current.totalAmount || current.authFeePaid,
+      paidAmount: current.paidAmount || 0,
+      dueAmount: current.dueAmount || 0,
+      paymentStatus: current.paymentStatus || "Paid",
       renewedOn: new Date().toISOString().split("T")[0],
       notes: current.notes || ""
     };
@@ -252,12 +338,19 @@ export const renewPermit = (req, res) => {
     const history = Array.isArray(current.renewalHistory) ? [...current.renewalHistory] : [];
     history.unshift(oldSnapshot);
 
+    const total = newAuthFeePaid ? Number(newAuthFeePaid) : (current.totalAmount || current.authFeePaid);
+    const paid = newPaidAmount !== undefined ? Number(newPaidAmount) : total;
+    const payment = computePayment(total, paid);
+
     const renewed = {
       ...current,
-      permitNumber: newPermitNumber || `${current.permitNumber}/R1`,
-      issueDate: startDate,
-      expiryDate: newExpiry,
-      authFeePaid: newAuthFeePaid ? Number(newAuthFeePaid) : current.authFeePaid,
+      permitNumber: newPermitNumber || `${current.permitNumber}-RNW`,
+      expiryDate: newExpiryDate || calculatedExpiry,
+      authFeePaid: total,
+      totalAmount: payment.totalAmount,
+      paidAmount: payment.paidAmount,
+      dueAmount: payment.dueAmount,
+      paymentStatus: payment.paymentStatus,
       status: "Active",
       renewalHistory: history,
       notes: `Renewed on ${new Date().toISOString().split("T")[0]}. Previous permit: ${current.permitNumber}`
@@ -268,7 +361,7 @@ export const renewPermit = (req, res) => {
 
     res.json({
       success: true,
-      message: `Permit successfully renewed until ${newExpiry}`,
+      message: `Permit successfully renewed until ${renewed.expiryDate}`,
       data: renewed
     });
   } catch (error) {

@@ -40,6 +40,13 @@ import {
   updateUnderwriter,
   deleteUnderwriter
 } from "../controllers/underwriterController.js";
+import {
+  getUpcomingReminders,
+  getReminderLogs,
+  triggerAutoScan,
+  sendSingleReminder,
+  getWhatsAppConfigStatus
+} from "../controllers/reminderController.js";
 import { login, getCurrentUser } from "../controllers/authController.js";
 import { authenticateToken, sanitizeRequestBody } from "../middleware/authMiddleware.js";
 import { isDbConnected } from "../config/db.js";
@@ -109,5 +116,14 @@ router.post("/permits", authenticateToken, createPermit);
 router.put("/permits/:id", authenticateToken, updatePermit);
 router.delete("/permits/:id", authenticateToken, deletePermit);
 router.post("/permits/:id/renew", authenticateToken, renewPermit);
+
+// ==========================================
+// 3. WHATSAPP AUTOMATED REMINDERS
+// ==========================================
+router.get("/reminders/status", authenticateToken, getWhatsAppConfigStatus);
+router.get("/reminders/upcoming", authenticateToken, getUpcomingReminders);
+router.get("/reminders/logs", authenticateToken, getReminderLogs);
+router.post("/reminders/scan", authenticateToken, triggerAutoScan);
+router.post("/reminders/send", authenticateToken, sendSingleReminder);
 
 export default router;

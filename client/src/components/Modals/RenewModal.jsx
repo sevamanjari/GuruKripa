@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { X, RotateCw, CheckCircle2 } from "lucide-react";
+import { X, RotateCw, CheckCircle2, IndianRupee } from "lucide-react";
 
 export default function RenewModal({ isOpen, onClose, onConfirm, item, type = "insurance" }) {
   const [formData, setFormData] = useState({
     newNumber: "",
     newExpiry: "",
     newFee: "",
+    newPaid: "",
     newIdv: "",
     newNcb: ""
   });
@@ -18,11 +19,14 @@ export default function RenewModal({ isOpen, onClose, onConfirm, item, type = "i
     newExp.setFullYear(newExp.getFullYear() + 1);
     const newExpiryStr = newExp.toISOString().split("T")[0];
 
+    const fee = type === "insurance" ? (item.totalAmount || item.premiumAmount || 35000) : (item.totalAmount || item.authFeePaid || 16500);
+
     if (type === "insurance") {
       setFormData({
         newNumber: `${item.policyNumber}/RN`,
         newExpiry: newExpiryStr,
-        newFee: item.premiumAmount || 35000,
+        newFee: fee,
+        newPaid: fee,
         newIdv: Math.round((item.idvAmount || 2500000) * 0.9),
         newNcb: Math.min(50, (item.ncbPercentage || 20) + 5)
       });
@@ -30,7 +34,8 @@ export default function RenewModal({ isOpen, onClose, onConfirm, item, type = "i
       setFormData({
         newNumber: `${item.permitNumber}/R1`,
         newExpiry: newExpiryStr,
-        newFee: item.authFeePaid || 16500,
+        newFee: fee,
+        newPaid: fee,
         newIdv: "",
         newNcb: ""
       });
@@ -39,12 +44,18 @@ export default function RenewModal({ isOpen, onClose, onConfirm, item, type = "i
 
   if (!isOpen || !item) return null;
 
+  const total = Number(formData.newFee) || 0;
+  const paid = Number(formData.newPaid) || 0;
+  const due = Math.max(0, total - paid);
+
   const handleSubmit = (e) => {
     e.preventDefault();
     if (type === "insurance") {
       onConfirm(item.id, {
         newPolicyNumber: formData.newNumber,
-        newPremiumAmount: Number(formData.newFee),
+        newPremiumAmount: total,
+        newTotalAmount: total,
+        newPaidAmount: paid,
         newIdvAmount: Number(formData.newIdv),
         newNcbPercentage: Number(formData.newNcb)
       });
@@ -52,7 +63,9 @@ export default function RenewModal({ isOpen, onClose, onConfirm, item, type = "i
       onConfirm(item.id, {
         newPermitNumber: formData.newNumber,
         newExpiryDate: formData.newExpiry,
-        newAuthFeePaid: Number(formData.newFee)
+        newAuthFeePaid: total,
+        newTotalAmount: total,
+        newPaidAmount: paid
       });
     }
   };
@@ -98,14 +111,14 @@ export default function RenewModal({ isOpen, onClose, onConfirm, item, type = "i
                 </span>
               </div>
               <div style={{ fontSize: "0.86rem", fontWeight: 700, color: "var(--text-primary)" }}>
-                {item.customerName || "RTO Client"}
+                {item.customerName || "RTO Client"} {item.customerPhone ? `(${item.customerPhone})` : ""}
               </div>
               <div style={{ fontSize: "0.78rem", color: "var(--text-secondary)" }}>
                 Current Document: <span style={{ fontFamily: "monospace", fontWeight: 600 }}>{isInsurance ? item.policyNumber : item.permitNumber}</span>
               </div>
             </div>
 
-            <div className="form-group">
+            <div className="form-group" style={{ marginTop: "12px" }}>
               <label className="form-label">
                 {isInsurance ? "New Policy Number *" : "Renewed Permit / Auth No *"}
               </label>
@@ -132,7 +145,7 @@ export default function RenewModal({ isOpen, onClose, onConfirm, item, type = "i
 
               <div className="form-group">
                 <label className="form-label">
-                  {isInsurance ? "New Premium (₹)" : "Govt Fee (₹)"}
+                  {isInsurance ? "Renewal Premium (₹) *" : "Permit Fee (₹) *"}
                 </label>
                 <input
                   type="number"
@@ -141,6 +154,37 @@ export default function RenewModal({ isOpen, onClose, onConfirm, item, type = "i
                   value={formData.newFee}
                   onChange={(e) => setFormData({ ...formData, newFee: e.target.value })}
                 />
+              </div>
+            </div>
+
+            {/* Payment Collection during renewal */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+              <div className="form-group">
+                <label className="form-label">Amount Paid / Received (₹)</label>
+                <input
+                  type="number"
+                  className="form-input"
+                  placeholder="Paid in ₹"
+                  value={formData.newPaid}
+                  onChange={(e) => setFormData({ ...formData, newPaid: e.target.value })}
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Balance Due (₹)</label>
+                <div
+                  style={{
+                    padding: "8px 12px",
+                    background: "var(--bg-subtle)",
+                    border: "1px solid var(--border-default)",
+                    borderRadius: "var(--radius-md)",
+                    fontWeight: 700,
+                    fontSize: "0.9rem",
+                    color: due > 0 ? "var(--color-danger, #dc2626)" : "var(--color-success, #16a34a)"
+                  }}
+                >
+                  ₹{due.toLocaleString("en-IN")} {due === 0 ? "(Paid)" : "(Due)"}
+                </div>
               </div>
             </div>
 

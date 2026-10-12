@@ -1,16 +1,14 @@
 import React, { useState, useEffect } from "react";
-import { X, Users, Save } from "lucide-react";
+import { X, Users, Save, IndianRupee, CheckCircle2, AlertCircle } from "lucide-react";
 
 export default function CustomerModal({ isOpen, onClose, onSave, customer }) {
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
-    serviceType: "DL (Driving Licence)",
-    vehicleNumber: "",
-    docNumber: "",
-    dueDate: "",
-    amount: "",
-    status: "Pending",
+    email: "",
+    address: "",
+    totalAmount: "",
+    paidAmount: "",
     notes: ""
   });
 
@@ -19,24 +17,20 @@ export default function CustomerModal({ isOpen, onClose, onSave, customer }) {
       setFormData({
         name: customer.name || "",
         phone: customer.phone || "",
-        serviceType: customer.serviceType || "DL (Driving Licence)",
-        vehicleNumber: customer.vehicleNumber || "",
-        docNumber: customer.docNumber || "",
-        dueDate: customer.dueDate || "",
-        amount: customer.amount || "",
-        status: customer.status || "Pending",
+        email: customer.email || "",
+        address: customer.address || "",
+        totalAmount: customer.totalAmount ?? (customer.amount ?? ""),
+        paidAmount: customer.paidAmount ?? (customer.status === "Completed" ? (customer.amount ?? "") : ""),
         notes: customer.notes || ""
       });
     } else {
       setFormData({
         name: "",
         phone: "",
-        serviceType: "DL (Driving Licence)",
-        vehicleNumber: "",
-        docNumber: "",
-        dueDate: "",
-        amount: "",
-        status: "Pending",
+        email: "",
+        address: "",
+        totalAmount: "",
+        paidAmount: "",
         notes: ""
       });
     }
@@ -44,13 +38,61 @@ export default function CustomerModal({ isOpen, onClose, onSave, customer }) {
 
   if (!isOpen) return null;
 
+  const total = Math.max(0, Number(formData.totalAmount) || 0);
+  const paid = Math.max(0, Number(formData.paidAmount) || 0);
+  const due = Math.max(0, total - paid);
+
+  let paymentBadge = null;
+  if (total > 0) {
+    if (due === 0) {
+      paymentBadge = {
+        label: "Fully Paid",
+        color: "var(--color-success, #16a34a)",
+        bg: "rgba(22, 163, 74, 0.1)"
+      };
+    } else if (paid > 0) {
+      paymentBadge = {
+        label: `Partially Paid (₹${due.toLocaleString("en-IN")} Due)`,
+        color: "var(--color-warning, #d97706)",
+        bg: "rgba(217, 119, 6, 0.1)"
+      };
+    } else {
+      paymentBadge = {
+        label: `Full Payment Due (₹${due.toLocaleString("en-IN")})`,
+        color: "var(--color-danger, #dc2626)",
+        bg: "rgba(220, 38, 38, 0.1)"
+      };
+    }
+  } else {
+    paymentBadge = {
+      label: "No Charges Set",
+      color: "var(--text-muted)",
+      bg: "var(--bg-secondary)"
+    };
+  }
+
+  const handleMarkFullPaid = () => {
+    if (total > 0) {
+      setFormData({ ...formData, paidAmount: total });
+    }
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!formData.name.trim() || !formData.phone.trim()) {
       alert("Customer Name and Phone number are required!");
       return;
     }
-    onSave(formData);
+    onSave({
+      ...formData,
+      name: formData.name.trim(),
+      phone: formData.phone.trim(),
+      email: formData.email.trim(),
+      address: formData.address.trim(),
+      totalAmount: total,
+      paidAmount: paid,
+      dueAmount: due
+    });
   };
 
   return (
@@ -60,7 +102,7 @@ export default function CustomerModal({ isOpen, onClose, onSave, customer }) {
           <div className="modal-title-wrap">
             <Users size={18} color="var(--brand-primary)" />
             <h3 className="modal-title">
-              {customer ? "Edit Customer Entry" : "Add Customer Entry"}
+              {customer ? "Edit Customer Details" : "Add New Customer"}
             </h3>
           </div>
           <button className="btn btn-secondary btn-sm" onClick={onClose} style={{ padding: "4px" }}>
@@ -70,115 +112,210 @@ export default function CustomerModal({ isOpen, onClose, onSave, customer }) {
 
         <form onSubmit={handleSubmit}>
           <div className="modal-body">
-            <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: "12px" }}>
-              <div className="form-group">
-                <label className="form-label">Customer Name *</label>
-                <input
-                  type="text"
-                  className="form-input"
-                  required
-                  placeholder="e.g. Ramesh Verma"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                />
+            {/* Section 1: Basic Details */}
+            <div style={{ marginBottom: "16px" }}>
+              <div
+                style={{
+                  fontSize: "0.78rem",
+                  fontWeight: 700,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.05em",
+                  color: "var(--brand-primary)",
+                  marginBottom: "10px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px"
+                }}
+              >
+                <Users size={14} />
+                <span>Basic Customer Details</span>
               </div>
 
-              <div className="form-group">
-                <label className="form-label">Mobile Number *</label>
-                <input
-                  type="tel"
-                  className="form-input"
-                  required
-                  placeholder="9826012345"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                />
+              <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: "12px" }}>
+                <div className="form-group">
+                  <label className="form-label">Full Name *</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    required
+                    placeholder="e.g. Ramesh Verma"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Mobile Number *</label>
+                  <input
+                    type="tel"
+                    className="form-input"
+                    required
+                    placeholder="e.g. 9826012345"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginTop: "10px" }}>
+                <div className="form-group">
+                  <label className="form-label">Email Address (Optional)</label>
+                  <input
+                    type="email"
+                    className="form-input"
+                    placeholder="e.g. client@email.com"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">City / Address (Optional)</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="e.g. Indore, MP"
+                    value={formData.address}
+                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  />
+                </div>
               </div>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-              <div className="form-group">
-                <label className="form-label">Service Type</label>
-                <select
-                  className="form-select"
-                  value={formData.serviceType}
-                  onChange={(e) => setFormData({ ...formData, serviceType: e.target.value })}
+            {/* Section 2: Payment & Due Tracker */}
+            <div
+              style={{
+                marginBottom: "16px",
+                padding: "14px",
+                borderRadius: "8px",
+                background: "var(--bg-secondary, #f8fafc)",
+                border: "1px solid var(--border-default, #e2e8f0)"
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: "10px"
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: "0.78rem",
+                    fontWeight: 700,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.05em",
+                    color: "var(--brand-primary)",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px"
+                  }}
                 >
-                  <option value="DL (Driving Licence)">DL (Driving Licence)</option>
-                  <option value="Vehicle Insurance">Vehicle Insurance</option>
-                  <option value="Permit">Permit (State / National)</option>
-                  <option value="Fitness Certificate">Fitness Certificate</option>
-                  <option value="RC Transfer">RC Transfer</option>
-                  <option value="General RTO">General RTO Work</option>
-                </select>
+                  <IndianRupee size={14} />
+                  <span>Payment & Dues Tracking</span>
+                </div>
+
+                {total > 0 && paid < total && (
+                  <button
+                    type="button"
+                    onClick={handleMarkFullPaid}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      color: "var(--brand-primary)",
+                      fontSize: "0.75rem",
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      padding: 0,
+                      textDecoration: "underline"
+                    }}
+                  >
+                    Mark Fully Paid
+                  </button>
+                )}
               </div>
 
-              <div className="form-group">
-                <label className="form-label">Status</label>
-                <select
-                  className="form-select"
-                  value={formData.status}
-                  onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                <div className="form-group" style={{ marginBottom: "8px" }}>
+                  <label className="form-label">Total Charges / Fee (₹)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    className="form-input"
+                    placeholder="Total amount in ₹"
+                    value={formData.totalAmount}
+                    onChange={(e) => setFormData({ ...formData, totalAmount: e.target.value })}
+                  />
+                </div>
+
+                <div className="form-group" style={{ marginBottom: "8px" }}>
+                  <label className="form-label">Amount Paid / Advance (₹)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    className="form-input"
+                    placeholder="Received in ₹"
+                    value={formData.paidAmount}
+                    onChange={(e) => setFormData({ ...formData, paidAmount: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              {/* Dynamic Due Payment Calculation Preview */}
+              <div
+                style={{
+                  marginTop: "8px",
+                  padding: "10px 12px",
+                  borderRadius: "6px",
+                  background: "#ffffff",
+                  border: "1px solid var(--border-default, #e2e8f0)",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center"
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: "0.74rem", color: "var(--text-muted)" }}>
+                    Outstanding Balance / Due Payment:
+                  </div>
+                  <div
+                    style={{
+                      fontSize: "1.1rem",
+                      fontWeight: 700,
+                      color: due > 0 ? "var(--color-danger, #dc2626)" : "var(--color-success, #16a34a)"
+                    }}
+                  >
+                    ₹{due.toLocaleString("en-IN")}
+                  </div>
+                </div>
+
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "4px",
+                    padding: "4px 8px",
+                    borderRadius: "999px",
+                    fontSize: "0.75rem",
+                    fontWeight: 600,
+                    color: paymentBadge.color,
+                    background: paymentBadge.bg
+                  }}
                 >
-                  <option value="Pending">Pending</option>
-                  <option value="In Progress">In Progress</option>
-                  <option value="Completed">Completed</option>
-                </select>
+                  {due === 0 && total > 0 ? <CheckCircle2 size={12} /> : <AlertCircle size={12} />}
+                  {paymentBadge.label}
+                </span>
               </div>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-              <div className="form-group">
-                <label className="form-label">Vehicle Number (if any)</label>
-                <input
-                  type="text"
-                  className="form-input"
-                  placeholder="e.g. MP 09 AB 1234"
-                  value={formData.vehicleNumber}
-                  onChange={(e) => setFormData({ ...formData, vehicleNumber: e.target.value.toUpperCase() })}
-                />
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">App / DL / Policy No</label>
-                <input
-                  type="text"
-                  className="form-input"
-                  placeholder="Application or DL No"
-                  value={formData.docNumber}
-                  onChange={(e) => setFormData({ ...formData, docNumber: e.target.value })}
-                />
-              </div>
-            </div>
-
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-              <div className="form-group">
-                <label className="form-label">Due / Expiry Date</label>
-                <input
-                  type="date"
-                  className="form-input"
-                  value={formData.dueDate}
-                  onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
-                />
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Fee / Amount (₹)</label>
-                <input
-                  type="number"
-                  className="form-input"
-                  placeholder="Fee in ₹"
-                  value={formData.amount}
-                  onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                />
-              </div>
-            </div>
-
+            {/* Section 3: Notes & Instructions */}
             <div className="form-group">
-              <label className="form-label">Notes / Instructions</label>
+              <label className="form-label">Customer Notes & Opted Services (Optional)</label>
               <textarea
                 className="form-textarea"
-                placeholder="Any special remarks, required documents, or client instructions..."
+                rows="3"
+                placeholder="List services requested (DL renewal, insurance, permit, RC transfer) or client notes..."
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               />
@@ -191,7 +328,7 @@ export default function CustomerModal({ isOpen, onClose, onSave, customer }) {
             </button>
             <button type="submit" className="btn btn-primary">
               <Save size={16} />
-              <span>{customer ? "Update Entry" : "Save Entry"}</span>
+              <span>{customer ? "Update Customer" : "Save Customer"}</span>
             </button>
           </div>
         </form>

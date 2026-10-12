@@ -8,16 +8,73 @@ export const getDashboardStats = (req, res) => {
     const insurances = data.insurances || [];
     const permits = data.permits || [];
 
-    const pendingCount = customers.filter((c) => c.status === "Pending").length;
-    const completedCount = customers.filter((c) => c.status === "Completed").length;
-    const inProgressCount = customers.filter((c) => c.status === "In Progress").length;
+    // Customer financial totals
+    const custDue = customers.reduce((sum, c) => sum + (Number(c.dueAmount) || 0), 0);
+    const custPaid = customers.reduce((sum, c) => sum + (Number(c.paidAmount) || 0), 0);
+    const custBilled = customers.reduce((sum, c) => sum + (Number(c.totalAmount) || 0), 0);
+    const dueCustomersCount = customers.filter((c) => (Number(c.dueAmount) || 0) > 0).length;
+    const paidCustomersCount = customers.filter((c) => c.paymentStatus === "Paid").length;
+    const partialCustomersCount = customers.filter((c) => c.paymentStatus === "Partial").length;
 
-    // By service type breakdown
-    const serviceBreakdown = {};
-    customers.forEach((c) => {
-      const type = c.serviceType || "Other";
-      serviceBreakdown[type] = (serviceBreakdown[type] || 0) + 1;
-    });
+    // Insurance financial totals
+    const insBilled = insurances.reduce((sum, i) => sum + (Number(i.totalAmount ?? i.premiumAmount) || 0), 0);
+    const insPaid = insurances.reduce((sum, i) => sum + (Number(i.paidAmount) || 0), 0);
+    const insDue = insurances.reduce((sum, i) => sum + (Number(i.dueAmount) || 0), 0);
+
+    // Permit financial totals
+    const permitBilled = permits.reduce((sum, p) => sum + (Number(p.totalAmount ?? p.feeAmount) || 0), 0);
+    const permitPaid = permits.reduce((sum, p) => sum + (Number(p.paidAmount) || 0), 0);
+    const permitDue = permits.reduce((sum, p) => sum + (Number(p.dueAmount) || 0), 0);
+
+    // Combined grand monetary totals
+    const totalBilledAmount = custBilled + insBilled + permitBilled;
+    const totalPaidAmount = custPaid + insPaid + permitPaid;
+    const totalDueAmount = custDue + insDue + permitDue;
+
+    // Expiry alerts (items expiring in 30 days or already expired)
+    const now = new Date();
+    const criticalInsurances = insurances
+      .filter((i) => {
+        if (!i.expiryDate) return false;
+        const diff = Math.ceil((new Date(i.expiryDate) - now) / (1000 * 60 * 60 * 24));
+        return diff <= 30;
+      })
+      .map((i) => ({
+        type: "Insurance",
+        id: i.id,
+        policyNumber: i.policyNumber,
+        vehicleReg: i.vehicleReg,
+        customerName: i.customerName,
+        customerPhone: i.customerPhone,
+        date: i.expiryDate,
+        daysLeft: Math.ceil((new Date(i.expiryDate) - now) / (1000 * 60 * 60 * 24)),
+        dueAmount: Number(i.dueAmount) || 0,
+        status: i.status
+      }));
+
+    const criticalPermits = permits
+      .filter((p) => {
+        if (!p.validUpto) return false;
+        const diff = Math.ceil((new Date(p.validUpto) - now) / (1000 * 60 * 60 * 24));
+        return diff <= 30;
+      })
+      .map((p) => ({
+        type: "Permit",
+        id: p.id,
+        permitNumber: p.permitNumber,
+        permitType: p.permitType,
+        vehicleReg: p.vehicleReg,
+        customerName: p.customerName,
+        customerPhone: p.customerPhone,
+        date: p.validUpto,
+        daysLeft: Math.ceil((new Date(p.validUpto) - now) / (1000 * 60 * 60 * 24)),
+        dueAmount: Number(p.dueAmount) || 0,
+        status: p.status
+      }));
+
+    const criticalExpiries = [...criticalInsurances, ...criticalPermits].sort(
+      (a, b) => a.daysLeft - b.daysLeft
+    );
 
     res.json({
       success: true,
@@ -26,12 +83,42 @@ export const getDashboardStats = (req, res) => {
         totalVehicles: vehicles.length,
         totalInsurances: insurances.length,
         totalPermits: permits.length,
-        pendingCount,
-        completedCount,
-        inProgressCount,
-        serviceBreakdown
+
+        // Cross-service monetary aggregates
+        totalDueAmount,
+        totalPaidAmount,
+        totalBilledAmount,
+
+        // Customer billing stream
+        custBilled,
+        custPaid,
+        custDue,
+        dueCustomersCount,
+        paidCustomersCount,
+
+        // Insurance stream
+        insBilled,
+        insPaid,
+        insDue,
+        activeInsurances: insurances.filter((i) => i.status === "Active").length,
+        expiringInsurancesCount: criticalInsurances.length,
+
+        // Permit stream
+        permitBilled,
+        permitPaid,
+        permitDue,
+        activePermits: permits.filter((p) => p.status === "Active").length,
+        expiringPermitsCount: criticalPermits.length,
+
+        totalExpiringSoon: criticalExpiries.length,
+        pendingCount: dueCustomersCount,
+        completedCount: paidCustomersCount,
+        inProgressCount: partialCustomersCount
       },
-      recentCustomers: customers.slice(0, 5),
+      criticalExpiries: criticalExpiries.slice(0, 10),
+      recentCustomers: customers.slice(0, 8),
+      recentInsurances: insurances.slice(0, 6),
+      recentPermits: permits.slice(0, 6),
       lastUpdated: data.lastUpdated || new Date().toISOString()
     });
   } catch (error) {

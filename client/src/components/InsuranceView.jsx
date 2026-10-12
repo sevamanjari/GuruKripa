@@ -10,7 +10,11 @@ import {
   Phone,
   Clock,
   History,
-  Building2
+  Building2,
+  IndianRupee,
+  CheckCircle2,
+  AlertCircle,
+  MessageSquare
 } from "lucide-react";
 import HistoryModal from "./Modals/HistoryModal.jsx";
 
@@ -25,6 +29,7 @@ export default function InsuranceView({
 }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("All");
+  const [filterPayment, setFilterPayment] = useState("All");
   const [filterDueDate, setFilterDueDate] = useState("All");
   const [filterUnderwriter, setFilterUnderwriter] = useState("All");
 
@@ -40,6 +45,12 @@ export default function InsuranceView({
     const targetDay = new Date(target.getFullYear(), target.getMonth(), target.getDate());
     return Math.round((targetDay - today) / (1000 * 60 * 60 * 24));
   };
+
+  // Financial aggregates
+  const totalBilled = insurances.reduce((sum, i) => sum + (Number(i.totalAmount) || Number(i.premiumAmount) || 0), 0);
+  const totalCollected = insurances.reduce((sum, i) => sum + (Number(i.paidAmount) || 0), 0);
+  const totalDue = insurances.reduce((sum, i) => sum + (Number(i.dueAmount) || 0), 0);
+  const policiesWithDue = insurances.filter((i) => (Number(i.dueAmount) || 0) > 0).length;
 
   const filteredInsurances = insurances.filter((ins) => {
     const q = searchTerm.toLowerCase();
@@ -78,7 +89,16 @@ export default function InsuranceView({
       filterUnderwriter === "All" ||
       (ins.insuranceCompany && ins.insuranceCompany.toLowerCase() === filterUnderwriter.toLowerCase());
 
-    return matchesSearch && matchesStatus && matchesDueDate && matchesUnderwriter;
+    let matchesPayment = true;
+    if (filterPayment === "Due") {
+      matchesPayment = (Number(ins.dueAmount) || 0) > 0;
+    } else if (filterPayment === "Paid") {
+      matchesPayment = ins.paymentStatus === "Paid" || ((Number(ins.totalAmount) || 0) > 0 && (Number(ins.dueAmount) || 0) === 0);
+    } else if (filterPayment === "Partial") {
+      matchesPayment = ins.paymentStatus === "Partial";
+    }
+
+    return matchesSearch && matchesStatus && matchesDueDate && matchesUnderwriter && matchesPayment;
   });
 
   const countExpired = insurances.filter((i) => getDaysUntil(i.expiryDate) < 0).length;
@@ -106,7 +126,7 @@ export default function InsuranceView({
         <div>
           <h1 className="view-title">Vehicle Insurance Policies</h1>
           <p className="view-subtitle">
-            Track commercial and private vehicle insurance policies. Filter renewal expiries within 1, 7, 15, or 30 days and inspect past policy history.
+            Track commercial and private vehicle insurance policies linked by customer phone. Monitor premiums, collections, and outstanding dues.
           </p>
         </div>
 
@@ -125,6 +145,82 @@ export default function InsuranceView({
             <Plus size={14} />
             <span>Add Insurance</span>
           </button>
+        </div>
+      </div>
+
+      {/* Financial Overview Cards */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+          gap: "12px",
+          marginBottom: "16px"
+        }}
+      >
+        <div className="metric-card" style={{ padding: "14px 16px" }}>
+          <div className="metric-top" style={{ marginBottom: "6px" }}>
+            <span className="metric-label">Total Policies</span>
+            <div className="metric-icon-wrap">
+              <Shield size={14} />
+            </div>
+          </div>
+          <div className="metric-value" style={{ fontSize: "1.4rem" }}>
+            {insurances.length}
+          </div>
+          <div className="metric-caption">Active & historical policies</div>
+        </div>
+
+        <div className="metric-card" style={{ padding: "14px 16px" }}>
+          <div className="metric-top" style={{ marginBottom: "6px" }}>
+            <span className="metric-label">Total Premiums</span>
+            <div className="metric-icon-wrap">
+              <IndianRupee size={14} />
+            </div>
+          </div>
+          <div className="metric-value" style={{ fontSize: "1.4rem" }}>
+            ₹{totalBilled.toLocaleString("en-IN")}
+          </div>
+          <div className="metric-caption">Aggregate premium charges</div>
+        </div>
+
+        <div className="metric-card" style={{ padding: "14px 16px" }}>
+          <div className="metric-top" style={{ marginBottom: "6px" }}>
+            <span className="metric-label">Premiums Collected</span>
+            <div className="metric-icon-wrap" style={{ color: "var(--color-success, #16a34a)" }}>
+              <CheckCircle2 size={14} />
+            </div>
+          </div>
+          <div className="metric-value" style={{ fontSize: "1.4rem", color: "var(--color-success, #16a34a)" }}>
+            ₹{totalCollected.toLocaleString("en-IN")}
+          </div>
+          <div className="metric-caption">Payments received to date</div>
+        </div>
+
+        <div
+          className="metric-card"
+          style={{
+            padding: "14px 16px",
+            borderLeft: totalDue > 0 ? "3px solid var(--color-danger, #dc2626)" : "1px solid var(--border-default)"
+          }}
+        >
+          <div className="metric-top" style={{ marginBottom: "6px" }}>
+            <span className="metric-label">Outstanding Premium Dues</span>
+            <div className="metric-icon-wrap" style={{ color: totalDue > 0 ? "var(--color-danger, #dc2626)" : "var(--color-success, #16a34a)" }}>
+              <AlertCircle size={14} />
+            </div>
+          </div>
+          <div
+            className="metric-value"
+            style={{
+              fontSize: "1.4rem",
+              color: totalDue > 0 ? "var(--color-danger, #dc2626)" : "var(--color-success, #16a34a)"
+            }}
+          >
+            ₹{totalDue.toLocaleString("en-IN")}
+          </div>
+          <div className="metric-caption">
+            {policiesWithDue} polic{policiesWithDue === 1 ? "y" : "ies"} with unpaid balance
+          </div>
         </div>
       </div>
 
@@ -191,7 +287,7 @@ export default function InsuranceView({
           <input
             type="text"
             className="form-input"
-            placeholder="Search by vehicle reg, policy no, insurer, customer..."
+            placeholder="Search by vehicle reg, policy no, insurer, customer, phone..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -199,11 +295,23 @@ export default function InsuranceView({
 
         <select
           className="form-select"
-          style={{ width: "auto", minWidth: "160px" }}
+          style={{ width: "auto", minWidth: "150px" }}
+          value={filterPayment}
+          onChange={(e) => setFilterPayment(e.target.value)}
+        >
+          <option value="All">All Payments</option>
+          <option value="Due">Pending Dues Only ({policiesWithDue})</option>
+          <option value="Partial">Partially Paid</option>
+          <option value="Paid">Fully Paid</option>
+        </select>
+
+        <select
+          className="form-select"
+          style={{ width: "auto", minWidth: "150px" }}
           value={filterStatus}
           onChange={(e) => setFilterStatus(e.target.value)}
         >
-          <option value="All">All Statuses</option>
+          <option value="All">All Expiry Status</option>
           <option value="Active">Active</option>
           <option value="Expiring Soon">Expiring Soon (&lt; 30d)</option>
           <option value="Expired">Expired</option>
@@ -237,7 +345,7 @@ export default function InsuranceView({
             <p className="empty-state-desc">
               {insurances.length === 0
                 ? "No insurance policies registered yet. Click '+ Add Insurance' to issue a policy record."
-                : "No policies match the selected expiry or search filters."}
+                : "No policies match the selected expiry, search, or payment filters."}
             </p>
             {insurances.length === 0 && (
               <button className="btn btn-primary btn-sm" onClick={onAddInsurance}>
@@ -252,12 +360,14 @@ export default function InsuranceView({
               <thead>
                 <tr>
                   <th>Vehicle Number</th>
-                  <th>Customer Name & Phone</th>
+                  <th>Customer (Primary Phone)</th>
                   <th>Policy Details</th>
                   <th>Insurance Company</th>
                   <th>Expiry Date</th>
-                  <th>Status & Due</th>
-                  <th>Premium</th>
+                  <th>Premium (₹)</th>
+                  <th>Paid (₹)</th>
+                  <th>Due (₹)</th>
+                  <th>Payment Status</th>
                   <th style={{ textAlign: "right" }}>Actions</th>
                 </tr>
               </thead>
@@ -269,6 +379,10 @@ export default function InsuranceView({
                   const isWarning = days > 7 && days <= 30;
                   const historyCount = ins.renewalHistory?.length || 0;
 
+                  const total = Number(ins.totalAmount) || Number(ins.premiumAmount) || 0;
+                  const paid = Number(ins.paidAmount) || 0;
+                  const due = Number(ins.dueAmount) !== undefined ? Number(ins.dueAmount) : Math.max(0, total - paid);
+
                   return (
                     <tr key={ins.id}>
                       <td>
@@ -277,6 +391,8 @@ export default function InsuranceView({
                           <span>{ins.vehicleReg}</span>
                         </div>
                       </td>
+
+                      {/* Customer Name & Phone */}
                       <td>
                         <div style={{ fontWeight: 600, color: "var(--text-primary)" }}>
                           {ins.customerName || "N/A"}
@@ -302,51 +418,123 @@ export default function InsuranceView({
                           </div>
                         )}
                       </td>
+
                       <td>
                         <div style={{ fontFamily: "monospace", fontWeight: 600, fontSize: "0.82rem", color: "var(--text-secondary)" }}>
                           {ins.policyNumber}
                         </div>
                         <div style={{ fontSize: "0.74rem", color: "var(--text-muted)", marginTop: "2px" }}>
-                          {ins.policyType || "Comprehensive"}
+                          {ins.coverageType || ins.policyType || "Comprehensive"}
                         </div>
                       </td>
+
                       <td>
                         <div style={{ fontSize: "0.82rem", color: "var(--text-primary)" }}>
                           {ins.insuranceCompany}
                         </div>
                       </td>
+
                       <td>
                         <div style={{ display: "flex", alignItems: "center", gap: "5px", fontSize: "0.82rem", color: "var(--text-secondary)" }}>
                           <Calendar size={13} color="var(--text-light)" />
                           <span>{ins.expiryDate || "N/A"}</span>
                         </div>
+                        <div style={{ marginTop: "2px" }}>
+                          {isExpired ? (
+                            <span className="status-badge status-critical" style={{ fontSize: "0.7rem", padding: "1px 6px" }}>
+                              Expired ({Math.abs(days)}d ago)
+                            </span>
+                          ) : isCritical ? (
+                            <span className="status-badge status-critical" style={{ fontSize: "0.7rem", padding: "1px 6px" }}>
+                              Due in {days}d
+                            </span>
+                          ) : isWarning ? (
+                            <span className="status-badge status-warning" style={{ fontSize: "0.7rem", padding: "1px 6px" }}>
+                              Due in {days}d
+                            </span>
+                          ) : (
+                            <span className="status-badge status-active" style={{ fontSize: "0.7rem", padding: "1px 6px" }}>
+                              Valid ({days}d left)
+                            </span>
+                          )}
+                        </div>
                       </td>
-                      <td>
-                        {isExpired ? (
-                          <span className="status-badge status-critical">
-                            Expired ({Math.abs(days)}d ago)
-                          </span>
-                        ) : isCritical ? (
-                          <span className="status-badge status-critical">
-                            Due in {days} day{days === 1 ? "" : "s"}
-                          </span>
-                        ) : isWarning ? (
-                          <span className="status-badge status-warning">
-                            Due in {days} days
-                          </span>
-                        ) : (
-                          <span className="status-badge status-active">
-                            Valid ({days}d left)
-                          </span>
-                        )}
-                      </td>
+
+                      {/* Total Premium */}
                       <td>
                         <span style={{ fontWeight: 600, fontSize: "0.84rem", color: "var(--text-primary)" }}>
-                          {ins.premiumAmount ? `₹${Number(ins.premiumAmount).toLocaleString("en-IN")}` : "-"}
+                          {total > 0 ? `₹${total.toLocaleString("en-IN")}` : "-"}
                         </span>
                       </td>
+
+                      {/* Paid Amount */}
+                      <td>
+                        <span style={{ fontWeight: 600, fontSize: "0.84rem", color: paid > 0 ? "var(--color-success, #16a34a)" : "var(--text-muted)" }}>
+                          {paid > 0 ? `₹${paid.toLocaleString("en-IN")}` : "₹0"}
+                        </span>
+                      </td>
+
+                      {/* Due Balance */}
+                      <td>
+                        <span
+                          style={{
+                            fontWeight: 700,
+                            fontSize: "0.85rem",
+                            color: due > 0 ? "var(--color-danger, #dc2626)" : "var(--color-success, #16a34a)"
+                          }}
+                        >
+                          {due > 0 ? `₹${due.toLocaleString("en-IN")}` : "₹0 (Cleared)"}
+                        </span>
+                      </td>
+
+                      {/* Payment Status Badge */}
+                      <td>
+                        {due === 0 && total > 0 ? (
+                          <span className="status-badge status-active">
+                            <CheckCircle2 size={11} style={{ marginRight: "3px" }} />
+                            Paid
+                          </span>
+                        ) : paid > 0 && due > 0 ? (
+                          <span className="status-badge status-warning">
+                            <Clock size={11} style={{ marginRight: "3px" }} />
+                            Partial
+                          </span>
+                        ) : due > 0 ? (
+                          <span
+                            className="status-badge"
+                            style={{
+                              background: "rgba(220, 38, 38, 0.1)",
+                              color: "#dc2626",
+                              border: "1px solid rgba(220, 38, 38, 0.2)"
+                            }}
+                          >
+                            <AlertCircle size={11} style={{ marginRight: "3px" }} />
+                            Due
+                          </span>
+                        ) : (
+                          <span className="status-badge status-neutral">No Charges</span>
+                        )}
+                      </td>
+
                       <td className="action-cell">
                         <div className="action-group">
+                          {(() => {
+                            const rawPhone = (ins.customerPhone || "").replace(/\D/g, "");
+                            const fullPhone = rawPhone.length === 10 ? `91${rawPhone}` : rawPhone;
+                            const text = `नमस्ते ${ins.customerName || "ग्राहक"},\n\nगुरूकृपा यातायात से सादर प्रणाम। 🙏\nआपके वाहन *${ins.vehicleReg}* की बीमा पॉलिसी (*${ins.policyNumber}*) की वैधता *${ins.expiryDate}* को समाप्त हो रही है। समय पर नवीनीकरण करवाएं।\n\nसंपर्क: गुरूकृपा यातायात सेवा केन्द्र`;
+                            return fullPhone ? (
+                              <a
+                                href={`https://wa.me/${fullPhone}?text=${encodeURIComponent(text)}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="action-icon-btn"
+                                style={{ color: "#16a34a" }}
+                                title="Send WhatsApp Expiry Reminder"
+                              >
+                                <MessageSquare size={13} />
+                              </a>
+                            ) : null;
+                          })()}
                           <button
                             className="action-pill-btn"
                             onClick={() => onRenewInsurance(ins.id)}
@@ -390,16 +578,18 @@ export default function InsuranceView({
         )}
       </div>
 
-      {/* History Modal */}
-      <HistoryModal
-        isOpen={isHistoryOpen}
-        onClose={() => {
-          setIsHistoryOpen(false);
-          setHistoryItem(null);
-        }}
-        item={historyItem}
-        type="insurance"
-      />
+      {/* Renewal History Modal */}
+      {isHistoryOpen && (
+        <HistoryModal
+          isOpen={isHistoryOpen}
+          onClose={() => {
+            setIsHistoryOpen(false);
+            setHistoryItem(null);
+          }}
+          item={historyItem}
+          type="insurance"
+        />
+      )}
     </div>
   );
 }

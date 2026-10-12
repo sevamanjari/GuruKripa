@@ -6,7 +6,8 @@ import {
   FileText,
   LayoutDashboard,
   LogOut,
-  UserCheck
+  UserCheck,
+  MessageSquare
 } from "lucide-react";
 
 export default function Navbar({
@@ -20,7 +21,8 @@ export default function Navbar({
     { id: "dashboard", label: "Dashboard", shortLabel: "Home", icon: LayoutDashboard },
     { id: "customers", label: "Customers & RTO", shortLabel: "Customers", count: counts.customers, icon: Users },
     { id: "insurance", label: "Vehicle Insurance", shortLabel: "Insurance", count: counts.insurances, icon: Shield },
-    { id: "permits", label: "Permits", shortLabel: "Permits", count: counts.permits, icon: FileText }
+    { id: "permits", label: "Permits", shortLabel: "Permits", count: counts.permits, icon: FileText },
+    { id: "reminders", label: "WhatsApp Alerts", shortLabel: "WhatsApp", count: counts.reminders, icon: MessageSquare }
   ];
 
   return (

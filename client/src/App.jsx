@@ -6,6 +6,7 @@ import DashboardView from "./components/DashboardView.jsx";
 import CustomersView from "./components/CustomersView.jsx";
 import InsuranceView from "./components/InsuranceView.jsx";
 import PermitsView from "./components/PermitsView.jsx";
+import RemindersView from "./components/RemindersView.jsx";
 
 import CustomerModal from "./components/Modals/CustomerModal.jsx";
 import InsuranceModal from "./components/Modals/InsuranceModal.jsx";
@@ -15,7 +16,7 @@ import UnderwriterManageModal from "./components/Modals/UnderwriterManageModal.j
 
 import { api, authStorage } from "./services/api.js";
 
-const VALID_TABS = ["dashboard", "customers", "insurance", "permits"];
+const VALID_TABS = ["dashboard", "customers", "insurance", "permits", "reminders"];
 
 export default function App() {
   // Session & Authentication state
@@ -176,7 +177,7 @@ export default function App() {
       }
       setIsCustomerModalOpen(false);
       setEditingCustomer(null);
-      loadAllData();
+      await loadAllData();
     } catch (err) {
       showToast(`Error: ${err.message}`, "error");
     }
@@ -187,7 +188,7 @@ export default function App() {
     try {
       await api.deleteCustomer(id);
       showToast(`Customer '${name}' deleted successfully`, "info");
-      loadAllData();
+      await loadAllData();
     } catch (err) {
       showToast(`Delete failed: ${err.message}`, "error");
     }
@@ -205,7 +206,7 @@ export default function App() {
       }
       setIsInsuranceModalOpen(false);
       setEditingInsurance(null);
-      loadAllData();
+      await loadAllData();
     } catch (err) {
       showToast(`Error: ${err.message}`, "error");
     }
@@ -216,7 +217,7 @@ export default function App() {
     try {
       await api.deleteInsurance(id);
       showToast(`Policy '${policyNo}' deleted`, "info");
-      loadAllData();
+      await loadAllData();
     } catch (err) {
       showToast(`Delete failed: ${err.message}`, "error");
     }
@@ -242,7 +243,7 @@ export default function App() {
       }
       setIsPermitModalOpen(false);
       setEditingPermit(null);
-      loadAllData();
+      await loadAllData();
     } catch (err) {
       showToast(`Error: ${err.message}`, "error");
     }
@@ -253,7 +254,7 @@ export default function App() {
     try {
       await api.deletePermit(id);
       showToast(`Permit '${permNo}' deleted`, "info");
-      loadAllData();
+      await loadAllData();
     } catch (err) {
       showToast(`Delete failed: ${err.message}`, "error");
     }
@@ -278,7 +279,7 @@ export default function App() {
       }
       setIsRenewModalOpen(false);
       setRenewingItem(null);
-      loadAllData();
+      await loadAllData();
     } catch (err) {
       showToast(`Renewal failed: ${err.message}`, "error");
     }
@@ -297,6 +298,23 @@ export default function App() {
     );
   }
 
+  const remindersCount = React.useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const expInsurances = insurances.filter((i) => {
+      if (!i.expiryDate) return false;
+      const d = Math.ceil((new Date(i.expiryDate) - today) / (1000 * 60 * 60 * 24));
+      return d <= 7 && d >= -15;
+    }).length;
+    const expPermits = permits.filter((p) => {
+      if (!p.expiryDate) return false;
+      const d = Math.ceil((new Date(p.expiryDate) - today) / (1000 * 60 * 60 * 24));
+      return d <= 7 && d >= -15;
+    }).length;
+    const dues = customers.filter((c) => (c.dueAmount || 0) > 0).length;
+    return expInsurances + expPermits + dues;
+  }, [insurances, permits, customers]);
+
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
       {/* Top Navbar */}
@@ -306,7 +324,8 @@ export default function App() {
         counts={{
           customers: customers.length,
           insurances: insurances.length,
-          permits: permits.length
+          permits: permits.length,
+          reminders: remindersCount
         }}
         currentUser={currentUser}
         onLogout={handleLogout}
@@ -318,6 +337,8 @@ export default function App() {
           <DashboardView
             stats={stats}
             customers={customers}
+            insurances={insurances}
+            permits={permits}
             onNavigate={handleTabChange}
             onAddCustomer={() => {
               setEditingCustomer(null);
@@ -328,12 +349,22 @@ export default function App() {
               setIsCustomerModalOpen(true);
             }}
             onDeleteCustomer={handleDeleteCustomer}
+            onAddInsurance={() => {
+              setEditingInsurance(null);
+              setIsInsuranceModalOpen(true);
+            }}
+            onAddPermit={() => {
+              setEditingPermit(null);
+              setIsPermitModalOpen(true);
+            }}
           />
         )}
 
         {activeTab === "customers" && (
           <CustomersView
             customers={customers}
+            insurances={insurances}
+            permits={permits}
             onAddCustomer={() => {
               setEditingCustomer(null);
               setIsCustomerModalOpen(true);
@@ -379,6 +410,10 @@ export default function App() {
             onRenewPermit={handleOpenRenewPermit}
           />
         )}
+
+        {activeTab === "reminders" && (
+          <RemindersView showToast={showToast} />
+        )}
       </main>
 
       {/* Footer */}
@@ -414,6 +449,7 @@ export default function App() {
         onClose={() => setIsInsuranceModalOpen(false)}
         onSave={handleSaveInsurance}
         insurance={editingInsurance}
+        customers={customers}
         underwriters={underwriters}
         onOpenManageUnderwriters={() => setIsUnderwriterModalOpen(true)}
       />
@@ -431,6 +467,7 @@ export default function App() {
         onClose={() => setIsPermitModalOpen(false)}
         onSave={handleSavePermit}
         permit={editingPermit}
+        customers={customers}
         vehicles={[]}
       />
 

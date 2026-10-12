@@ -18,7 +18,8 @@ import Underwriter from "../models/Underwriter.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const DATA_FILE = path.join(__dirname, "store.json");
+// Store data outside of src/ so node --watch-path=src is not triggered on database saves
+const DATA_FILE = path.resolve(__dirname, "../../data/store.json");
 
 const getDefaultData = () => ({
   customers: [...initialCustomers],
@@ -55,6 +56,10 @@ export const loadData = () => {
 
 export const saveData = (data) => {
   try {
+    const dir = path.dirname(DATA_FILE);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
     data.lastUpdated = new Date().toISOString();
     fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2), "utf-8");
 

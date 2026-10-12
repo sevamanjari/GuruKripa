@@ -15,6 +15,14 @@ const permitSchema = new mongoose.Schema(
     expiryDate: { type: String, required: true },
     issuingRto: { type: String, default: "RTO Indore (MP-09)" },
     authFeePaid: { type: Number, default: 0 },
+    totalAmount: { type: Number, default: 0 },
+    paidAmount: { type: Number, default: 0 },
+    dueAmount: { type: Number, default: 0 },
+    paymentStatus: {
+      type: String,
+      enum: ["Paid", "Partial", "Due", "No Charges"],
+      default: "Due"
+    },
     status: { type: String, default: "Active" },
     notes: { type: String, default: "" },
     renewalHistory: { type: Array, default: [] }

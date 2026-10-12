@@ -5,6 +5,7 @@ import apiRoutes from "./routes/api.routes.js";
 import { securityHeaders } from "./middleware/authMiddleware.js";
 import { connectDB, isDbConnected } from "./config/db.js";
 import { syncFromMongo } from "./data/dataStore.js";
+import { startCronJobs } from "./services/cronService.js";
 
 dotenv.config();
 
@@ -83,6 +84,7 @@ app.listen(PORT, async () => {
   if (isDbConnected()) {
     await syncFromMongo();
   }
+  startCronJobs();
   console.log(`===============================================`);
   console.log(`🚀 GuruKripa Secure Server running on http://localhost:${PORT}`);
   console.log(`🛡️  Security Headers & Auth Guard active`);
