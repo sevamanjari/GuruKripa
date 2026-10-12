@@ -121,7 +121,7 @@ export default function RemindersView({ showToast }) {
       {/* Workspace Header */}
       <div className="view-header" style={{ marginBottom: "16px" }}>
         <div>
-          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
             <h1 className="view-title" style={{ margin: 0 }}>
               WhatsApp Reminders & Automations
             </h1>
@@ -157,7 +157,7 @@ export default function RemindersView({ showToast }) {
           </p>
         </div>
 
-        <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", alignItems: "center" }}>
+        <div className="view-header-actions">
           <button
             className="btn btn-secondary btn-sm"
             onClick={fetchData}
@@ -181,7 +181,7 @@ export default function RemindersView({ showToast }) {
             }}
           >
             <Sparkles size={14} />
-            <span>{scanning ? "Running Auto Scan..." : "⚡ Run Auto Scan Now"}</span>
+            <span>{scanning ? "Running Scan..." : "⚡ Run Auto Scan Now"}</span>
           </button>
         </div>
       </div>
@@ -201,8 +201,8 @@ export default function RemindersView({ showToast }) {
           gap: "10px"
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          <Clock size={18} color="#15803d" />
+        <div style={{ display: "flex", alignItems: "flex-start", gap: "10px" }}>
+          <Clock size={18} color="#15803d" style={{ marginTop: "2px", flexShrink: 0 }} />
           <div>
             <div style={{ fontSize: "0.85rem", fontWeight: 700, color: "#14532d" }}>
               Daily Automated Background Scheduler: Active
@@ -224,65 +224,58 @@ export default function RemindersView({ showToast }) {
               color: "#475569"
             }}
           >
-            💡 <em>Meta API keys not yet added in <code>.env</code>. Messages run in simulation mode + instant 1-click WhatsApp Web button works immediately!</em>
+            💡 <em>Meta API keys not yet added in <code>.env</code>. Messages run in simulation mode + instant 1-click WhatsApp button works directly on phone!</em>
           </div>
         )}
       </div>
 
       {/* KPI Stats Cards */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-          gap: "12px",
-          marginBottom: "16px"
-        }}
-      >
-        <div className="metric-card" style={{ padding: "12px 16px" }}>
-          <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: 600 }}>
-            TOTAL PENDING REMINDERS
+      <div className="metric-grid">
+        <div className="metric-card">
+          <div className="metric-label">
+            TOTAL PENDING
           </div>
-          <div style={{ fontSize: "1.4rem", fontWeight: 800, color: "var(--text-primary)", marginTop: "4px" }}>
+          <div className="metric-value">
             {candidates.length}
           </div>
-          <div style={{ fontSize: "0.74rem", color: "#64748b", marginTop: "2px" }}>
-            Within next {thresholdDays} days
+          <div className="metric-caption">
+            Next {thresholdDays} days
           </div>
         </div>
 
-        <div className="metric-card" style={{ padding: "12px 16px" }}>
-          <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: 600 }}>
-            CRITICAL (≤ 3 DAYS / EXPIRED)
+        <div className="metric-card">
+          <div className="metric-label" style={{ color: "#dc2626" }}>
+            CRITICAL (≤ 3D)
           </div>
-          <div style={{ fontSize: "1.4rem", fontWeight: 800, color: "#dc2626", marginTop: "4px" }}>
+          <div className="metric-value" style={{ color: "#dc2626" }}>
             {criticalCount}
           </div>
-          <div style={{ fontSize: "0.74rem", color: "#dc2626", marginTop: "2px" }}>
+          <div className="metric-caption" style={{ color: "#dc2626" }}>
             Needs immediate attention
           </div>
         </div>
 
-        <div className="metric-card" style={{ padding: "12px 16px" }}>
-          <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: 600 }}>
+        <div className="metric-card">
+          <div className="metric-label">
             INSURANCE RENEWALS
           </div>
-          <div style={{ fontSize: "1.4rem", fontWeight: 800, color: "#2563eb", marginTop: "4px" }}>
+          <div className="metric-value" style={{ color: "#2563eb" }}>
             {insuranceCount}
           </div>
-          <div style={{ fontSize: "0.74rem", color: "#64748b", marginTop: "2px" }}>
-            Vehicles needing renewal
+          <div className="metric-caption">
+            Expiring policies
           </div>
         </div>
 
-        <div className="metric-card" style={{ padding: "12px 16px" }}>
-          <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: 600 }}>
+        <div className="metric-card">
+          <div className="metric-label">
             PAYMENT DUES
           </div>
-          <div style={{ fontSize: "1.4rem", fontWeight: 800, color: "#d97706", marginTop: "4px" }}>
+          <div className="metric-value" style={{ color: "#d97706" }}>
             {dueCount}
           </div>
-          <div style={{ fontSize: "0.74rem", color: "#64748b", marginTop: "2px" }}>
-            Customers with pending balance
+          <div className="metric-caption">
+            Customers with balance
           </div>
         </div>
       </div>
@@ -294,24 +287,26 @@ export default function RemindersView({ showToast }) {
           justifyContent: "space-between",
           alignItems: "center",
           flexWrap: "wrap",
-          gap: "12px",
+          gap: "10px",
           marginBottom: "14px",
           background: "#ffffff",
-          padding: "10px 14px",
+          padding: "10px 12px",
           borderRadius: "8px",
           border: "1px solid var(--border-default)"
         }}
       >
-        <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+        <div className="reminders-tabs-scroll">
           <button
             onClick={() => setActiveSubTab("all")}
             className={`btn btn-sm ${activeSubTab === "all" ? "btn-primary" : "btn-secondary"}`}
+            style={{ flexShrink: 0 }}
           >
             All Pending ({candidates.length})
           </button>
           <button
             onClick={() => setActiveSubTab("insurance")}
             className={`btn btn-sm ${activeSubTab === "insurance" ? "btn-primary" : "btn-secondary"}`}
+            style={{ flexShrink: 0 }}
           >
             <Shield size={13} style={{ marginRight: "4px" }} />
             Insurance ({insuranceCount})
@@ -319,6 +314,7 @@ export default function RemindersView({ showToast }) {
           <button
             onClick={() => setActiveSubTab("permit")}
             className={`btn btn-sm ${activeSubTab === "permit" ? "btn-primary" : "btn-secondary"}`}
+            style={{ flexShrink: 0 }}
           >
             <FileText size={13} style={{ marginRight: "4px" }} />
             Permits ({permitCount})
@@ -326,13 +322,15 @@ export default function RemindersView({ showToast }) {
           <button
             onClick={() => setActiveSubTab("due")}
             className={`btn btn-sm ${activeSubTab === "due" ? "btn-primary" : "btn-secondary"}`}
+            style={{ flexShrink: 0 }}
           >
             <DollarSign size={13} style={{ marginRight: "4px" }} />
-            Payment Dues ({dueCount})
+            Dues ({dueCount})
           </button>
           <button
             onClick={() => setActiveSubTab("logs")}
             className={`btn btn-sm ${activeSubTab === "logs" ? "btn-primary" : "btn-secondary"}`}
+            style={{ flexShrink: 0 }}
           >
             <Clock size={13} style={{ marginRight: "4px" }} />
             Audit Logs ({logs.length})
@@ -340,8 +338,8 @@ export default function RemindersView({ showToast }) {
         </div>
 
         {activeSubTab !== "logs" && (
-          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            <div style={{ position: "relative" }}>
+          <div className="reminders-filter-controls">
+            <div style={{ position: "relative", width: "100%" }}>
               <Search
                 size={14}
                 style={{ position: "absolute", left: "10px", top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)" }}
@@ -357,7 +355,8 @@ export default function RemindersView({ showToast }) {
                   borderRadius: "6px",
                   border: "1px solid var(--border-default)",
                   outline: "none",
-                  width: "200px"
+                  width: "100%",
+                  boxSizing: "border-box"
                 }}
               />
             </div>
@@ -371,7 +370,8 @@ export default function RemindersView({ showToast }) {
                 borderRadius: "6px",
                 border: "1px solid var(--border-default)",
                 background: "#ffffff",
-                cursor: "pointer"
+                cursor: "pointer",
+                boxSizing: "border-box"
               }}
             >
               <option value="3">Within 3 Days</option>
@@ -385,162 +385,376 @@ export default function RemindersView({ showToast }) {
 
       {/* Main Content: Candidates Table vs Audit Logs */}
       {activeSubTab === "logs" ? (
-        /* Audit Logs Table */
-        <div className="table-responsive-wrapper">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Date & Time</th>
-                <th>Type</th>
-                <th>Customer</th>
-                <th>Recipient Phone</th>
-                <th>Vehicle</th>
-                <th>Status</th>
-                <th>Channel</th>
-                <th>Message Snippet</th>
-              </tr>
-            </thead>
-            <tbody>
-              {logs.length === 0 ? (
+        <>
+          {/* Desktop Audit Logs Table */}
+          <div className="desktop-only-table table-responsive-wrapper">
+            <table className="data-table">
+              <thead>
                 <tr>
-                  <td colSpan="8" style={{ textAlign: "center", padding: "40px", color: "var(--text-muted)" }}>
-                    No automated reminder logs recorded yet. Click "⚡ Run Auto Scan Now" to generate initial dispatches.
-                  </td>
+                  <th>Date & Time</th>
+                  <th>Type</th>
+                  <th>Customer</th>
+                  <th>Recipient Phone</th>
+                  <th>Vehicle</th>
+                  <th>Status</th>
+                  <th>Channel</th>
+                  <th>Message Snippet</th>
                 </tr>
-              ) : (
-                logs.map((log) => (
-                  <tr key={log.id || log._id}>
-                    <td style={{ fontSize: "0.8rem", whiteSpace: "nowrap" }}>
-                      {new Date(log.sentAt || log.createdAt).toLocaleString("en-IN", {
-                        day: "2-digit",
-                        month: "short",
-                        year: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit"
-                      })}
-                    </td>
-                    <td>
-                      <span className="status-badge status-neutral" style={{ fontSize: "0.75rem" }}>
-                        {log.type?.replace("_", " ").toUpperCase()}
-                      </span>
-                    </td>
-                    <td style={{ fontWeight: 600 }}>{log.recipientName || "-"}</td>
-                    <td style={{ fontFamily: "monospace", fontSize: "0.82rem" }}>+{log.recipientPhone}</td>
-                    <td style={{ fontWeight: 600 }}>{log.vehicleReg || "-"}</td>
-                    <td>
-                      <span
-                        className="status-badge"
-                        style={{
-                          background: log.status === "sent" ? "rgba(22, 163, 74, 0.12)" : "rgba(59, 130, 246, 0.12)",
-                          color: log.status === "sent" ? "#16a34a" : "#2563eb",
-                          border: `1px solid ${log.status === "sent" ? "rgba(22, 163, 74, 0.3)" : "rgba(59, 130, 246, 0.3)"}`
-                        }}
-                      >
-                        {log.status === "sent" ? "Sent" : "Simulated"}
-                      </span>
-                    </td>
-                    <td style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
-                      {log.channel === "whatsapp_cloud_api" ? "Meta Cloud API" : "Simulated / Dev"}
-                    </td>
-                    <td
-                      style={{
-                        maxWidth: "280px",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                        fontSize: "0.78rem",
-                        color: "var(--text-muted)"
-                      }}
-                      title={log.message}
-                    >
-                      {log.message}
+              </thead>
+              <tbody>
+                {logs.length === 0 ? (
+                  <tr>
+                    <td colSpan="8" style={{ textAlign: "center", padding: "40px", color: "var(--text-muted)" }}>
+                      No automated reminder logs recorded yet. Click "⚡ Run Auto Scan Now" to generate initial dispatches.
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                ) : (
+                  logs.map((log) => (
+                    <tr key={log.id || log._id}>
+                      <td style={{ fontSize: "0.8rem", whiteSpace: "nowrap" }}>
+                        {new Date(log.sentAt || log.createdAt).toLocaleString("en-IN", {
+                          day: "2-digit",
+                          month: "short",
+                          year: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit"
+                        })}
+                      </td>
+                      <td>
+                        <span className="status-badge status-neutral" style={{ fontSize: "0.75rem" }}>
+                          {log.type?.replace("_", " ").toUpperCase()}
+                        </span>
+                      </td>
+                      <td style={{ fontWeight: 600 }}>{log.recipientName || "-"}</td>
+                      <td style={{ fontFamily: "monospace", fontSize: "0.82rem" }}>+{log.recipientPhone}</td>
+                      <td style={{ fontWeight: 600 }}>{log.vehicleReg || "-"}</td>
+                      <td>
+                        <span
+                          className="status-badge"
+                          style={{
+                            background: log.status === "sent" ? "rgba(22, 163, 74, 0.12)" : "rgba(59, 130, 246, 0.12)",
+                            color: log.status === "sent" ? "#16a34a" : "#2563eb",
+                            border: `1px solid ${log.status === "sent" ? "rgba(22, 163, 74, 0.3)" : "rgba(59, 130, 246, 0.3)"}`
+                          }}
+                        >
+                          {log.status === "sent" ? "Sent" : "Simulated"}
+                        </span>
+                      </td>
+                      <td style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
+                        {log.channel === "whatsapp_cloud_api" ? "Meta Cloud API" : "Simulated / Dev"}
+                      </td>
+                      <td
+                        style={{
+                          maxWidth: "280px",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                          fontSize: "0.78rem",
+                          color: "var(--text-muted)"
+                        }}
+                        title={log.message}
+                      >
+                        {log.message}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile-Friendly Audit Log Cards */}
+          <div className="mobile-only-cards">
+            {logs.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "30px 16px", background: "#ffffff", borderRadius: "10px", border: "1px solid var(--border-default)" }}>
+                <p style={{ margin: 0, color: "var(--text-muted)", fontSize: "0.85rem" }}>
+                  No automated reminder logs recorded yet.
+                </p>
+              </div>
+            ) : (
+              logs.map((log) => (
+                <div key={log.id || log._id} className="mobile-reminder-card">
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" }}>
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: "0.95rem", color: "var(--text-primary)" }}>
+                        {log.recipientName || "Customer"}
+                      </div>
+                      <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "2px" }}>
+                        {new Date(log.sentAt || log.createdAt).toLocaleString("en-IN", {
+                          day: "2-digit",
+                          month: "short",
+                          hour: "2-digit",
+                          minute: "2-digit"
+                        })}
+                      </div>
+                    </div>
+                    <span
+                      className="status-badge"
+                      style={{
+                        fontSize: "0.72rem",
+                        background: log.status === "sent" ? "rgba(22, 163, 74, 0.12)" : "rgba(59, 130, 246, 0.12)",
+                        color: log.status === "sent" ? "#16a34a" : "#2563eb",
+                        border: `1px solid ${log.status === "sent" ? "rgba(22, 163, 74, 0.3)" : "rgba(59, 130, 246, 0.3)"}`
+                      }}
+                    >
+                      {log.status === "sent" ? "Sent" : "Simulated"}
+                    </span>
+                  </div>
+
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px", fontSize: "0.78rem", marginBottom: "10px", background: "#f8fafc", padding: "8px 10px", borderRadius: "6px" }}>
+                    <div>
+                      <span style={{ color: "var(--text-muted)" }}>Vehicle: </span>
+                      <strong style={{ fontFamily: "monospace" }}>{log.vehicleReg || "N/A"}</strong>
+                    </div>
+                    <div>
+                      <span style={{ color: "var(--text-muted)" }}>Phone: </span>
+                      <strong>+{log.recipientPhone}</strong>
+                    </div>
+                    <div>
+                      <span style={{ color: "var(--text-muted)" }}>Type: </span>
+                      <span>{log.type?.replace("_", " ")}</span>
+                    </div>
+                    <div>
+                      <span style={{ color: "var(--text-muted)" }}>Mode: </span>
+                      <span>{log.channel === "whatsapp_cloud_api" ? "Meta API" : "Simulated"}</span>
+                    </div>
+                  </div>
+
+                  <div style={{ fontSize: "0.78rem", color: "#475569", background: "#ffffff", padding: "8px", borderRadius: "6px", border: "1px dashed var(--border-default)", fontStyle: "italic" }}>
+                    "{log.message?.slice(0, 140)}..."
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </>
       ) : (
-        /* Candidates Table */
-        <div className="table-responsive-wrapper">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Customer Name</th>
-                <th>Category</th>
-                <th>Vehicle Reg</th>
-                <th>Phone</th>
-                <th>Expiry / Due</th>
-                <th>Urgency</th>
-                <th>Amount</th>
-                <th style={{ textAlign: "right" }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredCandidates.length === 0 ? (
+        <>
+          {/* Desktop Candidates Table */}
+          <div className="desktop-only-table table-responsive-wrapper">
+            <table className="data-table">
+              <thead>
                 <tr>
-                  <td colSpan="8" style={{ textAlign: "center", padding: "40px", color: "var(--text-muted)" }}>
-                    <CheckCircle2 size={32} color="#16a34a" style={{ margin: "0 auto 10px", display: "block" }} />
-                    <strong>No upcoming expiries or dues found for this filter.</strong>
-                    <p style={{ margin: "6px 0 0", fontSize: "0.82rem" }}>
-                      All vehicle policies and dues are up to date!
-                    </p>
-                  </td>
+                  <th>Customer Name</th>
+                  <th>Category</th>
+                  <th>Vehicle Reg</th>
+                  <th>Phone</th>
+                  <th>Expiry / Due</th>
+                  <th>Urgency</th>
+                  <th>Amount</th>
+                  <th style={{ textAlign: "right" }}>Actions</th>
                 </tr>
-              ) : (
-                filteredCandidates.map((cand) => (
-                  <tr key={cand.id}>
-                    <td>
-                      <div style={{ fontWeight: 600, color: "var(--text-primary)" }}>
+              </thead>
+              <tbody>
+                {filteredCandidates.length === 0 ? (
+                  <tr>
+                    <td colSpan="8" style={{ textAlign: "center", padding: "40px", color: "var(--text-muted)" }}>
+                      <CheckCircle2 size={32} color="#16a34a" style={{ margin: "0 auto 10px", display: "block" }} />
+                      <strong>No upcoming expiries or dues found for this filter.</strong>
+                      <p style={{ margin: "6px 0 0", fontSize: "0.82rem" }}>
+                        All vehicle policies and dues are up to date!
+                      </p>
+                    </td>
+                  </tr>
+                ) : (
+                  filteredCandidates.map((cand) => (
+                    <tr key={cand.id}>
+                      <td>
+                        <div style={{ fontWeight: 600, color: "var(--text-primary)" }}>
+                          {cand.customerName || "Customer"}
+                        </div>
+                      </td>
+
+                      <td>
+                        <span
+                          className="status-badge"
+                          style={{
+                            fontSize: "0.75rem",
+                            background:
+                              cand.type === "insurance_renewal"
+                                ? "rgba(37, 99, 235, 0.08)"
+                                : cand.type === "permit_renewal"
+                                ? "rgba(124, 58, 237, 0.08)"
+                                : "rgba(217, 119, 6, 0.08)",
+                            color:
+                              cand.type === "insurance_renewal"
+                                ? "#2563eb"
+                                : cand.type === "permit_renewal"
+                                ? "#7c3aed"
+                                : "#d97706",
+                            border: "1px solid currentColor"
+                          }}
+                        >
+                          {cand.category}
+                        </span>
+                      </td>
+
+                      <td>
+                        <span style={{ fontWeight: 700, fontFamily: "monospace", fontSize: "0.85rem" }}>
+                          {cand.vehicleReg}
+                        </span>
+                      </td>
+
+                      <td>
+                        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                          <Phone size={12} color="var(--text-muted)" />
+                          <span style={{ fontSize: "0.82rem" }}>
+                            {cand.customerPhone || <em style={{ color: "var(--text-muted)" }}>No Phone</em>}
+                          </span>
+                        </div>
+                      </td>
+
+                      <td>
+                        <span style={{ fontSize: "0.82rem" }}>{cand.expiryDate}</span>
+                      </td>
+
+                      <td>
+                        {cand.urgency === "expired" ? (
+                          <span className="status-badge" style={{ background: "#fee2e2", color: "#dc2626", border: "1px solid #fca5a5" }}>
+                            <AlertTriangle size={11} style={{ marginRight: "3px" }} />
+                            Expired
+                          </span>
+                        ) : cand.urgency === "critical" ? (
+                          <span className="status-badge" style={{ background: "#fef3c7", color: "#d97706", border: "1px solid #fcd34d" }}>
+                            <Clock size={11} style={{ marginRight: "3px" }} />
+                            {cand.daysLeft}d left
+                          </span>
+                        ) : cand.daysLeft !== null ? (
+                          <span className="status-badge status-neutral">
+                            {cand.daysLeft} days
+                          </span>
+                        ) : (
+                          <span className="status-badge status-warning">
+                            Due
+                          </span>
+                        )}
+                      </td>
+
+                      <td>
+                        <span style={{ fontWeight: 600, fontSize: "0.82rem", color: cand.dueAmount > 0 ? "#dc2626" : "var(--text-muted)" }}>
+                          {cand.dueAmount > 0 ? `₹${cand.dueAmount.toLocaleString("en-IN")}` : "₹0"}
+                        </span>
+                      </td>
+
+                      <td style={{ textAlign: "right" }}>
+                        <div style={{ display: "inline-flex", gap: "6px", alignItems: "center" }}>
+                          {/* 1-Click WhatsApp Button (Instant deep link) */}
+                          {cand.customerPhone && (
+                            <a
+                              href={cand.waLink}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="btn btn-sm"
+                              style={{
+                                background: "#25D366",
+                                color: "#ffffff",
+                                borderColor: "#22bf5b",
+                                padding: "4px 8px",
+                                fontSize: "0.76rem",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "4px",
+                                textDecoration: "none"
+                              }}
+                              title="Open in WhatsApp Web / App"
+                            >
+                              <MessageSquare size={12} />
+                              <span>WhatsApp</span>
+                              <ExternalLink size={10} />
+                            </a>
+                          )}
+
+                          {/* Preview & Edit Modal */}
+                          <button
+                            className="btn btn-secondary btn-sm"
+                            style={{ padding: "4px 8px", fontSize: "0.76rem" }}
+                            onClick={() => {
+                              setPreviewItem(cand);
+                              setCustomMessage(cand.message);
+                            }}
+                            title="Preview or Edit Reminder Text"
+                          >
+                            Preview
+                          </button>
+
+                          {/* Auto-Send via API or Simulator */}
+                          <button
+                            className="btn btn-secondary btn-sm"
+                            style={{ padding: "4px 8px", fontSize: "0.76rem" }}
+                            onClick={() => handleSendSingle(cand, cand.message)}
+                            title="Dispatch Reminder via Backend"
+                          >
+                            <Send size={12} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile-Friendly Candidate Reminder Cards */}
+          <div className="mobile-only-cards">
+            {filteredCandidates.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "40px 16px", background: "#ffffff", borderRadius: "10px", border: "1px solid var(--border-default)" }}>
+                <CheckCircle2 size={32} color="#16a34a" style={{ margin: "0 auto 10px", display: "block" }} />
+                <strong style={{ fontSize: "0.95rem" }}>All caught up!</strong>
+                <p style={{ margin: "6px 0 0", fontSize: "0.82rem", color: "var(--text-muted)" }}>
+                  No upcoming expiries or payment dues found for this filter.
+                </p>
+              </div>
+            ) : (
+              filteredCandidates.map((cand) => (
+                <div key={cand.id} className="mobile-reminder-card">
+                  {/* Top Bar: Name + Urgency Badge */}
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" }}>
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: "1rem", color: "var(--text-primary)" }}>
                         {cand.customerName || "Customer"}
                       </div>
-                    </td>
-
-                    <td>
-                      <span
-                        className="status-badge"
-                        style={{
-                          fontSize: "0.75rem",
-                          background:
-                            cand.type === "insurance_renewal"
-                              ? "rgba(37, 99, 235, 0.08)"
-                              : cand.type === "permit_renewal"
-                              ? "rgba(124, 58, 237, 0.08)"
-                              : "rgba(217, 119, 6, 0.08)",
-                          color:
-                            cand.type === "insurance_renewal"
-                              ? "#2563eb"
-                              : cand.type === "permit_renewal"
-                              ? "#7c3aed"
-                              : "#d97706",
-                          border: "1px solid currentColor"
-                        }}
-                      >
-                        {cand.category}
-                      </span>
-                    </td>
-
-                    <td>
-                      <span style={{ fontWeight: 700, fontFamily: "monospace", fontSize: "0.85rem" }}>
-                        {cand.vehicleReg}
-                      </span>
-                    </td>
-
-                    <td>
-                      <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                        <Phone size={12} color="var(--text-muted)" />
-                        <span style={{ fontSize: "0.82rem" }}>
-                          {cand.customerPhone || <em style={{ color: "var(--text-muted)" }}>No Phone</em>}
+                      <div style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "3px" }}>
+                        <span
+                          style={{
+                            display: "inline-block",
+                            padding: "2px 8px",
+                            borderRadius: "4px",
+                            fontFamily: "monospace",
+                            fontWeight: 700,
+                            fontSize: "0.82rem",
+                            background: "#f1f5f9",
+                            color: "#1e293b",
+                            border: "1px solid #cbd5e1"
+                          }}
+                        >
+                          {cand.vehicleReg}
+                        </span>
+                        <span
+                          className="status-badge"
+                          style={{
+                            fontSize: "0.7rem",
+                            padding: "2px 6px",
+                            background:
+                              cand.type === "insurance_renewal"
+                                ? "rgba(37, 99, 235, 0.08)"
+                                : cand.type === "permit_renewal"
+                                ? "rgba(124, 58, 237, 0.08)"
+                                : "rgba(217, 119, 6, 0.08)",
+                            color:
+                              cand.type === "insurance_renewal"
+                                ? "#2563eb"
+                                : cand.type === "permit_renewal"
+                                ? "#7c3aed"
+                                : "#d97706"
+                          }}
+                        >
+                          {cand.category}
                         </span>
                       </div>
-                    </td>
+                    </div>
 
-                    <td>
-                      <span style={{ fontSize: "0.82rem" }}>{cand.expiryDate}</span>
-                    </td>
-
-                    <td>
+                    <div>
                       {cand.urgency === "expired" ? (
                         <span className="status-badge" style={{ background: "#fee2e2", color: "#dc2626", border: "1px solid #fca5a5" }}>
                           <AlertTriangle size={11} style={{ marginRight: "3px" }} />
@@ -560,72 +774,104 @@ export default function RemindersView({ showToast }) {
                           Due
                         </span>
                       )}
-                    </td>
+                    </div>
+                  </div>
 
-                    <td>
-                      <span style={{ fontWeight: 600, fontSize: "0.82rem", color: cand.dueAmount > 0 ? "#dc2626" : "var(--text-muted)" }}>
+                  {/* Info Row: Date, Due Amount, Phone */}
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "1fr 1fr",
+                      gap: "8px",
+                      fontSize: "0.8rem",
+                      background: "#f8fafc",
+                      padding: "8px 12px",
+                      borderRadius: "6px",
+                      marginBottom: "12px"
+                    }}
+                  >
+                    <div>
+                      <div style={{ color: "var(--text-muted)", fontSize: "0.72rem" }}>Expiry / Due</div>
+                      <div style={{ fontWeight: 600 }}>{cand.expiryDate}</div>
+                    </div>
+                    <div>
+                      <div style={{ color: "var(--text-muted)", fontSize: "0.72rem" }}>Pending Amount</div>
+                      <div style={{ fontWeight: 700, color: cand.dueAmount > 0 ? "#dc2626" : "var(--text-primary)" }}>
                         {cand.dueAmount > 0 ? `₹${cand.dueAmount.toLocaleString("en-IN")}` : "₹0"}
-                      </span>
-                    </td>
-
-                    <td style={{ textAlign: "right" }}>
-                      <div style={{ display: "inline-flex", gap: "6px", alignItems: "center" }}>
-                        {/* 1-Click WhatsApp Button (Instant deep link) */}
-                        {cand.customerPhone && (
-                          <a
-                            href={cand.waLink}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="btn btn-sm"
-                            style={{
-                              background: "#25D366",
-                              color: "#ffffff",
-                              borderColor: "#22bf5b",
-                              padding: "4px 8px",
-                              fontSize: "0.76rem",
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: "4px",
-                              textDecoration: "none"
-                            }}
-                            title="Open in WhatsApp Web / App"
-                          >
-                            <MessageSquare size={12} />
-                            <span>WhatsApp</span>
-                            <ExternalLink size={10} />
-                          </a>
-                        )}
-
-                        {/* Preview & Edit Modal */}
-                        <button
-                          className="btn btn-secondary btn-sm"
-                          style={{ padding: "4px 8px", fontSize: "0.76rem" }}
-                          onClick={() => {
-                            setPreviewItem(cand);
-                            setCustomMessage(cand.message);
-                          }}
-                          title="Preview or Edit Reminder Text"
-                        >
-                          Preview
-                        </button>
-
-                        {/* Auto-Send via API or Simulator */}
-                        <button
-                          className="btn btn-secondary btn-sm"
-                          style={{ padding: "4px 8px", fontSize: "0.76rem" }}
-                          onClick={() => handleSendSingle(cand, cand.message)}
-                          title="Dispatch Reminder via Backend"
-                        >
-                          <Send size={12} />
-                        </button>
                       </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                    </div>
+                    <div style={{ gridColumn: "1 / -1", display: "flex", alignItems: "center", gap: "6px" }}>
+                      <Phone size={12} color="var(--text-muted)" />
+                      {cand.customerPhone ? (
+                        <a
+                          href={`tel:${cand.customerPhone}`}
+                          style={{ color: "#2563eb", textDecoration: "none", fontWeight: 600 }}
+                        >
+                          +{cand.customerPhone} (Tap to Call)
+                        </a>
+                      ) : (
+                        <span style={{ color: "var(--text-muted)" }}>No Phone Provided</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Action Buttons: Prominent 1-Tap WhatsApp Button */}
+                  <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                    {cand.customerPhone && (
+                      <a
+                        href={cand.waLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="btn btn-sm"
+                        style={{
+                          flex: "1 1 100%",
+                          background: "#25D366",
+                          color: "#ffffff",
+                          borderColor: "#22bf5b",
+                          padding: "10px 14px",
+                          fontSize: "0.88rem",
+                          fontWeight: 700,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: "8px",
+                          textDecoration: "none",
+                          borderRadius: "6px",
+                          boxShadow: "0 2px 4px rgba(37, 211, 102, 0.25)"
+                        }}
+                      >
+                        <MessageSquare size={16} />
+                        <span>Send WhatsApp Reminder</span>
+                        <ExternalLink size={14} />
+                      </a>
+                    )}
+
+                    <button
+                      className="btn btn-secondary btn-sm"
+                      style={{ flex: 1, padding: "8px 10px", fontSize: "0.78rem", justifyContent: "center" }}
+                      onClick={() => {
+                        setPreviewItem(cand);
+                        setCustomMessage(cand.message);
+                      }}
+                    >
+                      Preview / Edit
+                    </button>
+
+                    <button
+                      className="btn btn-secondary btn-sm"
+                      style={{ flex: 1, padding: "8px 10px", fontSize: "0.78rem", justifyContent: "center" }}
+                      onClick={() => handleSendSingle(cand, cand.message)}
+                      title="Dispatch Reminder via Backend"
+                    >
+                      <Send size={13} style={{ marginRight: "4px" }} />
+                      <span>Dispatch</span>
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </>
       )}
 
       {/* Message Preview & Customizer Modal */}
@@ -654,7 +900,7 @@ export default function RemindersView({ showToast }) {
                   marginBottom: "14px",
                   fontSize: "0.82rem",
                   display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))",
                   gap: "8px"
                 }}
               >
@@ -716,7 +962,7 @@ export default function RemindersView({ showToast }) {
             </div>
 
             <div
-              className="modal-footer"
+              className="modal-footer reminders-modal-footer"
               style={{
                 display: "flex",
                 justifyContent: "space-between",
