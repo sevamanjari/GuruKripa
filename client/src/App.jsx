@@ -146,10 +146,14 @@ export default function App() {
   const handleLogin = async (username, password) => {
     const res = await api.login(username, password);
     setIsAuthenticated(true);
-    setCurrentUser(res.user);
-    showToast(`Signed in successfully as ${res.user.name}`);
-    // Sync current hash route upon login
-    window.location.hash = activeTab;
+    setCurrentUser(res.user || {});
+    showToast(`Signed in successfully as ${res.user?.name || res.user?.username || "Admin"}`);
+    try {
+      await loadAllData();
+    } catch (e) {
+      console.warn("Initial data load warning:", e);
+    }
+    window.location.hash = activeTab || "dashboard";
   };
 
   // Logout handler

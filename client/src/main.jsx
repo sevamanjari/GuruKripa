@@ -47,26 +47,61 @@ class ErrorBoundary extends Component {
               System Reload Needed
             </h2>
             <p style={{ fontSize: "0.84rem", color: "#64748b", marginBottom: "20px", lineHeight: 1.5 }}>
-              A browser reload is required to synchronize the latest updates.
+              A temporary display sync occurred. Please reload to continue.
             </p>
-            <button
-              onClick={() => {
-                localStorage.clear();
-                window.location.href = "/";
-              }}
-              style={{
-                background: "#0f172a",
-                color: "#ffffff",
-                border: "none",
-                borderRadius: "6px",
-                padding: "8px 18px",
-                fontWeight: 600,
-                fontSize: "0.85rem",
-                cursor: "pointer"
-              }}
-            >
-              Reset & Reload Portal
-            </button>
+            {this.state.error?.message && (
+              <div
+                style={{
+                  background: "#fef2f2",
+                  color: "#991b1b",
+                  padding: "8px 12px",
+                  borderRadius: "6px",
+                  fontSize: "0.75rem",
+                  marginBottom: "16px",
+                  fontFamily: "monospace",
+                  textAlign: "left"
+                }}
+              >
+                {this.state.error.message}
+              </div>
+            )}
+            <div style={{ display: "flex", gap: "10px", justifyContent: "center" }}>
+              <button
+                onClick={() => {
+                  window.location.reload();
+                }}
+                style={{
+                  background: "#0f172a",
+                  color: "#ffffff",
+                  border: "none",
+                  borderRadius: "6px",
+                  padding: "8px 18px",
+                  fontWeight: 600,
+                  fontSize: "0.85rem",
+                  cursor: "pointer"
+                }}
+              >
+                Reload Portal
+              </button>
+              <button
+                onClick={() => {
+                  localStorage.clear();
+                  window.location.href = "/";
+                }}
+                style={{
+                  background: "#f1f5f9",
+                  color: "#475569",
+                  border: "1px solid #cbd5e1",
+                  borderRadius: "6px",
+                  padding: "8px 14px",
+                  fontWeight: 500,
+                  fontSize: "0.82rem",
+                  cursor: "pointer"
+                }}
+              >
+                Reset & Sign Out
+              </button>
+            </div>
           </div>
         </div>
       );

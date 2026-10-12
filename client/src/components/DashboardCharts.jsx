@@ -7,7 +7,10 @@ import { IndianRupee, TrendingUp, AlertCircle, CheckCircle2 } from "lucide-react
 export function RevenueStreamBarChart({ data = [] }) {
   const [hoveredIdx, setHoveredIdx] = useState(null);
 
-  const maxVal = Math.max(...data.map((d) => Math.max(d.billed, d.collected)), 1000);
+  const maxVal = Math.max(
+    ...((Array.isArray(data) ? data : []).map((d) => Math.max(Number(d?.billed) || 0, Number(d?.collected) || 0))),
+    1000
+  );
   const chartHeight = 180;
   const barWidth = 24;
   const groupSpacing = 90;
@@ -146,10 +149,10 @@ export function RevenueStreamBarChart({ data = [] }) {
             zIndex: 10
           }}
         >
-          <div style={{ fontWeight: 700, marginBottom: "3px" }}>{data[hoveredIdx].label}</div>
-          <div>Billed: ₹{data[hoveredIdx].billed.toLocaleString("en-IN")}</div>
-          <div style={{ color: "#4ade80" }}>Collected: ₹{data[hoveredIdx].collected.toLocaleString("en-IN")}</div>
-          <div style={{ color: "#f87171" }}>Pending Due: ₹{data[hoveredIdx].due.toLocaleString("en-IN")}</div>
+          <div style={{ fontWeight: 700, marginBottom: "3px" }}>{data[hoveredIdx]?.label}</div>
+          <div>Billed: ₹{(Number(data[hoveredIdx]?.billed) || 0).toLocaleString("en-IN")}</div>
+          <div style={{ color: "#4ade80" }}>Collected: ₹{(Number(data[hoveredIdx]?.collected) || 0).toLocaleString("en-IN")}</div>
+          <div style={{ color: "#f87171" }}>Pending Due: ₹{(Number(data[hoveredIdx]?.due) || 0).toLocaleString("en-IN")}</div>
         </div>
       )}
 
@@ -266,16 +269,16 @@ export function StreamDistributionDonutChart({ data = [] }) {
           }}
         >
           <span style={{ fontSize: "0.68rem", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 700 }}>
-            {hoveredIdx !== null ? data[hoveredIdx].label : "Operations"}
+            {hoveredIdx !== null && data[hoveredIdx] ? data[hoveredIdx].label : "Operations"}
           </span>
           <span style={{ fontSize: "0.95rem", fontWeight: 800, color: "var(--text-primary)" }}>
-            {hoveredIdx !== null
-              ? `₹${data[hoveredIdx].value.toLocaleString("en-IN")}`
-              : `₹${total.toLocaleString("en-IN")}`}
+            {hoveredIdx !== null && data[hoveredIdx]
+              ? `₹${(Number(data[hoveredIdx].value) || 0).toLocaleString("en-IN")}`
+              : `₹${(Number(total) || 0).toLocaleString("en-IN")}`}
           </span>
-          {hoveredIdx !== null && total > 0 && (
+          {hoveredIdx !== null && data[hoveredIdx] && total > 0 && (
             <span style={{ fontSize: "0.7rem", color: data[hoveredIdx].color, fontWeight: 700 }}>
-              {Math.round((data[hoveredIdx].value / total) * 100)}% share
+              {Math.round(((Number(data[hoveredIdx].value) || 0) / total) * 100)}% share
             </span>
           )}
         </div>
@@ -399,13 +402,13 @@ export function RecoveryGauge({ rate = 0, totalBilled = 0, totalPaid = 0, totalD
         <div style={{ textAlign: "center" }}>
           <div style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>Collected</div>
           <div style={{ fontSize: "0.82rem", fontWeight: 700, color: "#16a34a" }}>
-            ₹{totalPaid.toLocaleString("en-IN")}
+            ₹{(Number(totalPaid) || 0).toLocaleString("en-IN")}
           </div>
         </div>
         <div style={{ textAlign: "center" }}>
           <div style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>Pending Due</div>
           <div style={{ fontSize: "0.82rem", fontWeight: 700, color: totalDue > 0 ? "#dc2626" : "#16a34a" }}>
-            ₹{totalDue.toLocaleString("en-IN")}
+            ₹{(Number(totalDue) || 0).toLocaleString("en-IN")}
           </div>
         </div>
       </div>
@@ -417,7 +420,8 @@ export function RecoveryGauge({ rate = 0, totalBilled = 0, totalPaid = 0, totalD
  * Top Pending Debtors Horizontal Bar Chart
  */
 export function TopDebtorsBarChart({ debtors = [], onSelectCustomer }) {
-  if (debtors.length === 0) {
+  const safeDebtors = Array.isArray(debtors) ? debtors : [];
+  if (safeDebtors.length === 0) {
     return (
       <div style={{ padding: "24px 0", textAlign: "center", color: "#16a34a", fontSize: "0.85rem" }}>
         <CheckCircle2 size={24} style={{ margin: "0 auto 6px" }} />
@@ -426,12 +430,13 @@ export function TopDebtorsBarChart({ debtors = [], onSelectCustomer }) {
     );
   }
 
-  const maxDue = Math.max(...debtors.map((d) => d.dueAmount), 1);
+  const maxDue = Math.max(...safeDebtors.map((d) => Number(d?.dueAmount) || 0), 1);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-      {debtors.slice(0, 5).map((d, i) => {
-        const pct = Math.round((d.dueAmount / maxDue) * 100);
+      {safeDebtors.slice(0, 5).map((d, i) => {
+        const due = Number(d?.dueAmount) || 0;
+        const pct = Math.round((due / maxDue) * 100);
         return (
           <div key={i} style={{ fontSize: "0.78rem" }}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
@@ -444,10 +449,10 @@ export function TopDebtorsBarChart({ debtors = [], onSelectCustomer }) {
                 onClick={() => onSelectCustomer && onSelectCustomer(d)}
                 title="View customer"
               >
-                {d.name} <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>({d.phone || "-"})</span>
+                {d?.name || "Customer"} <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>({d?.phone || "-"})</span>
               </span>
               <span style={{ fontWeight: 700, color: "#dc2626" }}>
-                ₹{d.dueAmount.toLocaleString("en-IN")}
+                ₹{due.toLocaleString("en-IN")}
               </span>
             </div>
             {/* Progress Track */}
