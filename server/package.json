@@ -5,6 +5,7 @@
   "main": "src/server.js",
   "type": "module",
   "scripts": {
+    "build": "echo 'No build required for server'",
     "start": "node src/server.js",
     "dev": "node --watch-path=src src/server.js",
     "test": "node test/securityAndFeatures.test.js"
