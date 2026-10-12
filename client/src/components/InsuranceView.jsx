@@ -130,7 +130,7 @@ export default function InsuranceView({
           </p>
         </div>
 
-        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+        <div className="view-header-actions">
           {onOpenManageUnderwriters && (
             <button
               className="btn btn-secondary btn-sm"
@@ -138,7 +138,7 @@ export default function InsuranceView({
               style={{ display: "flex", alignItems: "center", gap: "6px" }}
             >
               <Building2 size={14} />
-              <span>Manage Underwriters ({underwriters.length})</span>
+              <span>Underwriters ({underwriters.length})</span>
             </button>
           )}
           <button className="btn btn-primary btn-sm" onClick={onAddInsurance}>
@@ -149,14 +149,7 @@ export default function InsuranceView({
       </div>
 
       {/* Financial Overview Cards */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-          gap: "12px",
-          marginBottom: "16px"
-        }}
-      >
+      <div className="metric-grid">
         <div className="metric-card" style={{ padding: "14px 16px" }}>
           <div className="metric-top" style={{ marginBottom: "6px" }}>
             <span className="metric-label">Total Policies</span>
@@ -355,226 +348,402 @@ export default function InsuranceView({
             )}
           </div>
         ) : (
-          <div className="table-container">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Vehicle Number</th>
-                  <th>Customer (Primary Phone)</th>
-                  <th>Policy Details</th>
-                  <th>Insurance Company</th>
-                  <th>Expiry Date</th>
-                  <th>Premium (₹)</th>
-                  <th>Paid (₹)</th>
-                  <th>Due (₹)</th>
-                  <th>Payment Status</th>
-                  <th style={{ textAlign: "right" }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredInsurances.map((ins) => {
-                  const days = getDaysUntil(ins.expiryDate);
-                  const isExpired = days < 0;
-                  const isCritical = days >= 0 && days <= 7;
-                  const isWarning = days > 7 && days <= 30;
-                  const historyCount = ins.renewalHistory?.length || 0;
+          <>
+            {/* Desktop Table View */}
+            <div className="desktop-only-table table-container">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Vehicle Number</th>
+                    <th>Customer (Primary Phone)</th>
+                    <th>Policy Details</th>
+                    <th>Insurance Company</th>
+                    <th>Expiry Date</th>
+                    <th>Premium (₹)</th>
+                    <th>Paid (₹)</th>
+                    <th>Due (₹)</th>
+                    <th>Payment Status</th>
+                    <th style={{ textAlign: "right" }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredInsurances.map((ins) => {
+                    const days = getDaysUntil(ins.expiryDate);
+                    const isExpired = days < 0;
+                    const isCritical = days >= 0 && days <= 7;
+                    const isWarning = days > 7 && days <= 30;
+                    const historyCount = ins.renewalHistory?.length || 0;
 
-                  const total = Number(ins.totalAmount) || Number(ins.premiumAmount) || 0;
-                  const paid = Number(ins.paidAmount) || 0;
-                  const due = Number(ins.dueAmount) !== undefined ? Number(ins.dueAmount) : Math.max(0, total - paid);
+                    const total = Number(ins.totalAmount) || Number(ins.premiumAmount) || 0;
+                    const paid = Number(ins.paidAmount) || 0;
+                    const due = Number(ins.dueAmount) !== undefined ? Number(ins.dueAmount) : Math.max(0, total - paid);
 
-                  return (
-                    <tr key={ins.id}>
-                      <td>
-                        <div className="number-plate">
-                          <span className="number-plate-ind">IND</span>
-                          <span>{ins.vehicleReg}</span>
-                        </div>
-                      </td>
+                    return (
+                      <tr key={ins.id}>
+                        <td>
+                          <div className="number-plate">
+                            <span className="number-plate-ind">IND</span>
+                            <span>{ins.vehicleReg}</span>
+                          </div>
+                        </td>
 
-                      {/* Customer Name & Phone */}
-                      <td>
-                        <div style={{ fontWeight: 600, color: "var(--text-primary)" }}>
-                          {ins.customerName || "N/A"}
-                        </div>
-                        {ins.customerPhone && (
-                          <div
+                        {/* Customer Name & Phone */}
+                        <td>
+                          <div style={{ fontWeight: 600, color: "var(--text-primary)" }}>
+                            {ins.customerName || "N/A"}
+                          </div>
+                          {ins.customerPhone && (
+                            <div
+                              style={{
+                                fontSize: "0.76rem",
+                                color: "var(--text-muted)",
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "4px",
+                                marginTop: "2px"
+                              }}
+                            >
+                              <Phone size={11} color="var(--text-muted)" />
+                              <a
+                                href={`tel:${ins.customerPhone}`}
+                                style={{ color: "var(--text-muted)", textDecoration: "none" }}
+                              >
+                                {ins.customerPhone}
+                              </a>
+                            </div>
+                          )}
+                        </td>
+
+                        <td>
+                          <div style={{ fontFamily: "monospace", fontWeight: 600, fontSize: "0.82rem", color: "var(--text-secondary)" }}>
+                            {ins.policyNumber}
+                          </div>
+                          <div style={{ fontSize: "0.74rem", color: "var(--text-muted)", marginTop: "2px" }}>
+                            {ins.coverageType || ins.policyType || "Comprehensive"}
+                          </div>
+                        </td>
+
+                        <td>
+                          <div style={{ fontSize: "0.82rem", color: "var(--text-primary)" }}>
+                            {ins.insuranceCompany}
+                          </div>
+                        </td>
+
+                        <td>
+                          <div style={{ display: "flex", alignItems: "center", gap: "5px", fontSize: "0.82rem", color: "var(--text-secondary)" }}>
+                            <Calendar size={13} color="var(--text-light)" />
+                            <span>{ins.expiryDate || "N/A"}</span>
+                          </div>
+                          <div style={{ marginTop: "2px" }}>
+                            {isExpired ? (
+                              <span className="status-badge status-critical" style={{ fontSize: "0.7rem", padding: "1px 6px" }}>
+                                Expired ({Math.abs(days)}d ago)
+                              </span>
+                            ) : isCritical ? (
+                              <span className="status-badge status-critical" style={{ fontSize: "0.7rem", padding: "1px 6px" }}>
+                                Due in {days}d
+                              </span>
+                            ) : isWarning ? (
+                              <span className="status-badge status-warning" style={{ fontSize: "0.7rem", padding: "1px 6px" }}>
+                                Due in {days}d
+                              </span>
+                            ) : (
+                              <span className="status-badge status-active" style={{ fontSize: "0.7rem", padding: "1px 6px" }}>
+                                Valid ({days}d left)
+                              </span>
+                            )}
+                          </div>
+                        </td>
+
+                        {/* Total Premium */}
+                        <td>
+                          <span style={{ fontWeight: 600, fontSize: "0.84rem", color: "var(--text-primary)" }}>
+                            {total > 0 ? `₹${total.toLocaleString("en-IN")}` : "-"}
+                          </span>
+                        </td>
+
+                        {/* Paid Amount */}
+                        <td>
+                          <span style={{ fontWeight: 600, fontSize: "0.84rem", color: paid > 0 ? "var(--color-success, #16a34a)" : "var(--text-muted)" }}>
+                            {paid > 0 ? `₹${paid.toLocaleString("en-IN")}` : "₹0"}
+                          </span>
+                        </td>
+
+                        {/* Due Balance */}
+                        <td>
+                          <span
                             style={{
-                              fontSize: "0.76rem",
-                              color: "var(--text-muted)",
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "4px",
-                              marginTop: "2px"
+                              fontWeight: 700,
+                              fontSize: "0.85rem",
+                              color: due > 0 ? "var(--color-danger, #dc2626)" : "var(--color-success, #16a34a)"
                             }}
                           >
-                            <Phone size={11} color="var(--text-muted)" />
-                            <a
-                              href={`tel:${ins.customerPhone}`}
-                              style={{ color: "var(--text-muted)", textDecoration: "none" }}
+                            {due > 0 ? `₹${due.toLocaleString("en-IN")}` : "₹0 (Cleared)"}
+                          </span>
+                        </td>
+
+                        {/* Payment Status Badge */}
+                        <td>
+                          {due === 0 && total > 0 ? (
+                            <span className="status-badge status-active">
+                              <CheckCircle2 size={11} style={{ marginRight: "3px" }} />
+                              Paid
+                            </span>
+                          ) : paid > 0 && due > 0 ? (
+                            <span className="status-badge status-warning">
+                              <Clock size={11} style={{ marginRight: "3px" }} />
+                              Partial
+                            </span>
+                          ) : due > 0 ? (
+                            <span
+                              className="status-badge"
+                              style={{
+                                background: "rgba(220, 38, 38, 0.1)",
+                                color: "#dc2626",
+                                border: "1px solid rgba(220, 38, 38, 0.2)"
+                              }}
                             >
-                              {ins.customerPhone}
+                              <AlertCircle size={11} style={{ marginRight: "3px" }} />
+                              Due
+                            </span>
+                          ) : (
+                            <span className="status-badge status-neutral">No Charges</span>
+                          )}
+                        </td>
+
+                        <td className="action-cell">
+                          <div className="action-group">
+                            {(() => {
+                              const rawPhone = (ins.customerPhone || "").replace(/\D/g, "");
+                              const fullPhone = rawPhone.length === 10 ? `91${rawPhone}` : rawPhone;
+                              const text = `नमस्ते ${ins.customerName || "ग्राहक"},\n\nगुरूकृपा यातायात से सादर प्रणाम। 🙏\nआपके वाहन *${ins.vehicleReg}* की बीमा पॉलिसी (*${ins.policyNumber}*) की वैधता *${ins.expiryDate}* को समाप्त हो रही है। समय पर नवीनीकरण करवाएं।\n\nसंपर्क: गुरूकृपा यातायात सेवा केन्द्र`;
+                              return fullPhone ? (
+                                <a
+                                  href={`https://wa.me/${fullPhone}?text=${encodeURIComponent(text)}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="action-icon-btn"
+                                  style={{ color: "#16a34a" }}
+                                  title="Send WhatsApp Expiry Reminder"
+                                >
+                                  <MessageSquare size={13} />
+                                </a>
+                              ) : null;
+                            })()}
+                            <button
+                              className="action-pill-btn"
+                              onClick={() => onRenewInsurance(ins.id)}
+                              title="Fast Renew Policy"
+                            >
+                              <RotateCw size={12} />
+                              <span>Renew</span>
+                            </button>
+                            <button
+                              className={`action-icon-btn ${historyCount > 0 ? "has-history" : ""}`}
+                              onClick={() => {
+                                setHistoryItem(ins);
+                                setIsHistoryOpen(true);
+                              }}
+                              title={historyCount > 0 ? `View Renewal History (${historyCount} past terms)` : "View Renewal History"}
+                            >
+                              <History size={13} />
+                            </button>
+                            <button
+                              className="action-icon-btn"
+                              onClick={() => onEditInsurance(ins)}
+                              title="Edit Policy"
+                            >
+                              <Edit2 size={13} />
+                            </button>
+                            <button
+                              className="action-icon-btn action-icon-danger"
+                              onClick={() => onDeleteInsurance(ins.id, ins.policyNumber)}
+                              title="Delete Policy"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile-Friendly Insurance Cards */}
+            <div className="mobile-only-cards" style={{ padding: "10px" }}>
+              {filteredInsurances.map((ins) => {
+                const days = getDaysUntil(ins.expiryDate);
+                const isExpired = days < 0;
+                const isCritical = days >= 0 && days <= 7;
+                const isWarning = days > 7 && days <= 30;
+                const historyCount = ins.renewalHistory?.length || 0;
+
+                const total = Number(ins.totalAmount) || Number(ins.premiumAmount) || 0;
+                const paid = Number(ins.paidAmount) || 0;
+                const due = Number(ins.dueAmount) !== undefined ? Number(ins.dueAmount) : Math.max(0, total - paid);
+
+                const rawPhone = (ins.customerPhone || "").replace(/\D/g, "");
+                const fullPhone = rawPhone.length === 10 ? `91${rawPhone}` : rawPhone;
+                const waText = `नमस्ते ${ins.customerName || "ग्राहक"},\n\nगुरूकृपा यातायात से सादर प्रणाम। 🙏\nआपके वाहन *${ins.vehicleReg}* की बीमा पॉलिसी (*${ins.policyNumber}*) की वैधता *${ins.expiryDate}* को समाप्त हो रही है। समय पर नवीनीकरण करवाएं।\n\nसंपर्क: गुरूकृपा यातायात सेवा केन्द्र`;
+
+                return (
+                  <div key={ins.id} className="mobile-entity-card">
+                    {/* Header: Number plate and Expiry Badge */}
+                    <div className="mobile-card-header">
+                      <div className="number-plate">
+                        <span className="number-plate-ind">IND</span>
+                        <span>{ins.vehicleReg}</span>
+                      </div>
+
+                      <div>
+                        {isExpired ? (
+                          <span className="status-badge status-critical" style={{ fontSize: "0.72rem" }}>
+                            Expired ({Math.abs(days)}d ago)
+                          </span>
+                        ) : isCritical ? (
+                          <span className="status-badge status-critical" style={{ fontSize: "0.72rem" }}>
+                            Due in {days}d
+                          </span>
+                        ) : isWarning ? (
+                          <span className="status-badge status-warning" style={{ fontSize: "0.72rem" }}>
+                            Due in {days}d
+                          </span>
+                        ) : (
+                          <span className="status-badge status-active" style={{ fontSize: "0.72rem" }}>
+                            Valid ({days}d left)
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Customer & Company info */}
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "6px" }}>
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: "0.95rem", color: "var(--text-primary)" }}>
+                          {ins.customerName || "Customer"}
+                        </div>
+                        {ins.customerPhone && (
+                          <div style={{ display: "flex", alignItems: "center", gap: "5px", fontSize: "0.78rem", color: "var(--text-muted)", marginTop: "2px" }}>
+                            <Phone size={12} />
+                            <a href={`tel:${ins.customerPhone}`} style={{ color: "#2563eb", textDecoration: "none", fontWeight: 600 }}>
+                              +{ins.customerPhone}
                             </a>
                           </div>
                         )}
-                      </td>
+                      </div>
 
-                      <td>
-                        <div style={{ fontFamily: "monospace", fontWeight: 600, fontSize: "0.82rem", color: "var(--text-secondary)" }}>
-                          {ins.policyNumber}
-                        </div>
-                        <div style={{ fontSize: "0.74rem", color: "var(--text-muted)", marginTop: "2px" }}>
-                          {ins.coverageType || ins.policyType || "Comprehensive"}
-                        </div>
-                      </td>
-
-                      <td>
-                        <div style={{ fontSize: "0.82rem", color: "var(--text-primary)" }}>
+                      <div style={{ textAlign: "right" }}>
+                        <div style={{ fontSize: "0.78rem", fontWeight: 700, color: "var(--text-secondary)" }}>
                           {ins.insuranceCompany}
                         </div>
-                      </td>
-
-                      <td>
-                        <div style={{ display: "flex", alignItems: "center", gap: "5px", fontSize: "0.82rem", color: "var(--text-secondary)" }}>
-                          <Calendar size={13} color="var(--text-light)" />
-                          <span>{ins.expiryDate || "N/A"}</span>
+                        <div style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>
+                          {ins.coverageType || ins.policyType || "Comprehensive"}
                         </div>
-                        <div style={{ marginTop: "2px" }}>
-                          {isExpired ? (
-                            <span className="status-badge status-critical" style={{ fontSize: "0.7rem", padding: "1px 6px" }}>
-                              Expired ({Math.abs(days)}d ago)
-                            </span>
-                          ) : isCritical ? (
-                            <span className="status-badge status-critical" style={{ fontSize: "0.7rem", padding: "1px 6px" }}>
-                              Due in {days}d
-                            </span>
-                          ) : isWarning ? (
-                            <span className="status-badge status-warning" style={{ fontSize: "0.7rem", padding: "1px 6px" }}>
-                              Due in {days}d
-                            </span>
-                          ) : (
-                            <span className="status-badge status-active" style={{ fontSize: "0.7rem", padding: "1px 6px" }}>
-                              Valid ({days}d left)
-                            </span>
-                          )}
-                        </div>
-                      </td>
+                      </div>
+                    </div>
 
-                      {/* Total Premium */}
-                      <td>
-                        <span style={{ fontWeight: 600, fontSize: "0.84rem", color: "var(--text-primary)" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.76rem", color: "var(--text-muted)", background: "#ffffff", padding: "4px 0", borderTop: "1px dashed var(--border-default)" }}>
+                      <span>Policy: <strong style={{ fontFamily: "monospace", color: "var(--text-primary)" }}>{ins.policyNumber}</strong></span>
+                      <span style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                        <Calendar size={11} /> Exp: <strong style={{ color: "var(--text-primary)" }}>{ins.expiryDate || "N/A"}</strong>
+                      </span>
+                    </div>
+
+                    {/* Financial 3-column Grid */}
+                    <div className="mobile-card-financial-grid">
+                      <div>
+                        <div style={{ fontSize: "0.68rem", color: "var(--text-muted)", textTransform: "uppercase" }}>Premium</div>
+                        <div style={{ fontWeight: 600, fontSize: "0.85rem", marginTop: "2px" }}>
                           {total > 0 ? `₹${total.toLocaleString("en-IN")}` : "-"}
-                        </span>
-                      </td>
-
-                      {/* Paid Amount */}
-                      <td>
-                        <span style={{ fontWeight: 600, fontSize: "0.84rem", color: paid > 0 ? "var(--color-success, #16a34a)" : "var(--text-muted)" }}>
+                        </div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: "0.68rem", color: "var(--text-muted)", textTransform: "uppercase" }}>Paid</div>
+                        <div style={{ fontWeight: 600, fontSize: "0.85rem", color: paid > 0 ? "var(--color-success, #16a34a)" : "var(--text-muted)", marginTop: "2px" }}>
                           {paid > 0 ? `₹${paid.toLocaleString("en-IN")}` : "₹0"}
-                        </span>
-                      </td>
-
-                      {/* Due Balance */}
-                      <td>
-                        <span
+                        </div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: "0.68rem", color: "var(--text-muted)", textTransform: "uppercase" }}>Due</div>
+                        <div
                           style={{
                             fontWeight: 700,
                             fontSize: "0.85rem",
-                            color: due > 0 ? "var(--color-danger, #dc2626)" : "var(--color-success, #16a34a)"
+                            color: due > 0 ? "var(--color-danger, #dc2626)" : "var(--color-success, #16a34a)",
+                            marginTop: "2px"
                           }}
                         >
-                          {due > 0 ? `₹${due.toLocaleString("en-IN")}` : "₹0 (Cleared)"}
-                        </span>
-                      </td>
-
-                      {/* Payment Status Badge */}
-                      <td>
-                        {due === 0 && total > 0 ? (
-                          <span className="status-badge status-active">
-                            <CheckCircle2 size={11} style={{ marginRight: "3px" }} />
-                            Paid
-                          </span>
-                        ) : paid > 0 && due > 0 ? (
-                          <span className="status-badge status-warning">
-                            <Clock size={11} style={{ marginRight: "3px" }} />
-                            Partial
-                          </span>
-                        ) : due > 0 ? (
-                          <span
-                            className="status-badge"
-                            style={{
-                              background: "rgba(220, 38, 38, 0.1)",
-                              color: "#dc2626",
-                              border: "1px solid rgba(220, 38, 38, 0.2)"
-                            }}
-                          >
-                            <AlertCircle size={11} style={{ marginRight: "3px" }} />
-                            Due
-                          </span>
-                        ) : (
-                          <span className="status-badge status-neutral">No Charges</span>
-                        )}
-                      </td>
-
-                      <td className="action-cell">
-                        <div className="action-group">
-                          {(() => {
-                            const rawPhone = (ins.customerPhone || "").replace(/\D/g, "");
-                            const fullPhone = rawPhone.length === 10 ? `91${rawPhone}` : rawPhone;
-                            const text = `नमस्ते ${ins.customerName || "ग्राहक"},\n\nगुरूकृपा यातायात से सादर प्रणाम। 🙏\nआपके वाहन *${ins.vehicleReg}* की बीमा पॉलिसी (*${ins.policyNumber}*) की वैधता *${ins.expiryDate}* को समाप्त हो रही है। समय पर नवीनीकरण करवाएं।\n\nसंपर्क: गुरूकृपा यातायात सेवा केन्द्र`;
-                            return fullPhone ? (
-                              <a
-                                href={`https://wa.me/${fullPhone}?text=${encodeURIComponent(text)}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="action-icon-btn"
-                                style={{ color: "#16a34a" }}
-                                title="Send WhatsApp Expiry Reminder"
-                              >
-                                <MessageSquare size={13} />
-                              </a>
-                            ) : null;
-                          })()}
-                          <button
-                            className="action-pill-btn"
-                            onClick={() => onRenewInsurance(ins.id)}
-                            title="Fast Renew Policy"
-                          >
-                            <RotateCw size={12} />
-                            <span>Renew</span>
-                          </button>
-                          <button
-                            className={`action-icon-btn ${historyCount > 0 ? "has-history" : ""}`}
-                            onClick={() => {
-                              setHistoryItem(ins);
-                              setIsHistoryOpen(true);
-                            }}
-                            title={historyCount > 0 ? `View Renewal History (${historyCount} past terms)` : "View Renewal History"}
-                          >
-                            <History size={13} />
-                          </button>
-                          <button
-                            className="action-icon-btn"
-                            onClick={() => onEditInsurance(ins)}
-                            title="Edit Policy"
-                          >
-                            <Edit2 size={13} />
-                          </button>
-                          <button
-                            className="action-icon-btn action-icon-danger"
-                            onClick={() => onDeleteInsurance(ins.id, ins.policyNumber)}
-                            title="Delete Policy"
-                          >
-                            <Trash2 size={13} />
-                          </button>
+                          {due > 0 ? `₹${due.toLocaleString("en-IN")}` : "₹0"}
                         </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                      </div>
+                    </div>
+
+                    {/* Action Buttons Bar */}
+                    <div className="mobile-card-actions">
+                      {fullPhone && (
+                        <a
+                          href={`https://wa.me/${fullPhone}?text=${encodeURIComponent(waText)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="btn btn-sm"
+                          style={{
+                            background: "#25D366",
+                            color: "#ffffff",
+                            borderColor: "#22bf5b",
+                            flex: 1,
+                            fontWeight: 600
+                          }}
+                        >
+                          <MessageSquare size={13} />
+                          <span>WhatsApp</span>
+                        </a>
+                      )}
+
+                      <button
+                        className="btn btn-primary btn-sm"
+                        style={{ flex: 1 }}
+                        onClick={() => onRenewInsurance(ins.id)}
+                      >
+                        <RotateCw size={12} />
+                        <span>Renew</span>
+                      </button>
+
+                      <button
+                        className="btn btn-secondary btn-sm"
+                        onClick={() => {
+                          setHistoryItem(ins);
+                          setIsHistoryOpen(true);
+                        }}
+                        title="History"
+                      >
+                        <History size={13} />
+                        {historyCount > 0 && <span style={{ fontSize: "0.68rem", fontWeight: 700 }}>({historyCount})</span>}
+                      </button>
+
+                      <button
+                        className="btn btn-secondary btn-sm"
+                        onClick={() => onEditInsurance(ins)}
+                        title="Edit Policy"
+                      >
+                        <Edit2 size={13} />
+                      </button>
+
+                      <button
+                        className="btn btn-secondary btn-sm"
+                        style={{ color: "#dc2626" }}
+                        onClick={() => onDeleteInsurance(ins.id, ins.policyNumber)}
+                        title="Delete Policy"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </>
         )}
       </div>
 

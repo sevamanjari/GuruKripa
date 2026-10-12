@@ -122,21 +122,16 @@ export default function PermitsView({
           </p>
         </div>
 
-        <button className="btn btn-primary btn-sm" onClick={onAddPermit}>
-          <Plus size={14} />
-          <span>Add Permit</span>
-        </button>
+        <div className="view-header-actions">
+          <button className="btn btn-primary btn-sm" onClick={onAddPermit}>
+            <Plus size={14} />
+            <span>Add Permit</span>
+          </button>
+        </div>
       </div>
 
       {/* Financial Overview Cards */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-          gap: "12px",
-          marginBottom: "16px"
-        }}
-      >
+      <div className="metric-grid">
         <div className="metric-card" style={{ padding: "14px 16px" }}>
           <div className="metric-top" style={{ marginBottom: "6px" }}>
             <span className="metric-label">Total Permits</span>
@@ -319,226 +314,402 @@ export default function PermitsView({
             )}
           </div>
         ) : (
-          <div className="table-container">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Vehicle Number</th>
-                  <th>Customer (Primary Phone)</th>
-                  <th>Permit Details</th>
-                  <th>Jurisdiction</th>
-                  <th>Expiry Date</th>
-                  <th>Total Fee (₹)</th>
-                  <th>Paid (₹)</th>
-                  <th>Due (₹)</th>
-                  <th>Payment Status</th>
-                  <th style={{ textAlign: "right" }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredPermits.map((perm) => {
-                  const days = getDaysUntil(perm.expiryDate);
-                  const isExpired = days < 0;
-                  const isCritical = days >= 0 && days <= 7;
-                  const isWarning = days > 7 && days <= 30;
-                  const historyCount = perm.renewalHistory?.length || 0;
+          <>
+            {/* Desktop Table View */}
+            <div className="desktop-only-table table-container">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Vehicle Number</th>
+                    <th>Customer (Primary Phone)</th>
+                    <th>Permit Details</th>
+                    <th>Jurisdiction</th>
+                    <th>Expiry Date</th>
+                    <th>Total Fee (₹)</th>
+                    <th>Paid (₹)</th>
+                    <th>Due (₹)</th>
+                    <th>Payment Status</th>
+                    <th style={{ textAlign: "right" }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredPermits.map((perm) => {
+                    const days = getDaysUntil(perm.expiryDate);
+                    const isExpired = days < 0;
+                    const isCritical = days >= 0 && days <= 7;
+                    const isWarning = days > 7 && days <= 30;
+                    const historyCount = perm.renewalHistory?.length || 0;
 
-                  const total = Number(perm.totalAmount) || Number(perm.authFeePaid) || 0;
-                  const paid = Number(perm.paidAmount) || 0;
-                  const due = Number(perm.dueAmount) !== undefined ? Number(perm.dueAmount) : Math.max(0, total - paid);
+                    const total = Number(perm.totalAmount) || Number(perm.authFeePaid) || 0;
+                    const paid = Number(perm.paidAmount) || 0;
+                    const due = Number(perm.dueAmount) !== undefined ? Number(perm.dueAmount) : Math.max(0, total - paid);
 
-                  return (
-                    <tr key={perm.id}>
-                      <td>
-                        <div className="number-plate">
-                          <span className="number-plate-ind">IND</span>
-                          <span>{perm.vehicleReg}</span>
-                        </div>
-                      </td>
+                    return (
+                      <tr key={perm.id}>
+                        <td>
+                          <div className="number-plate">
+                            <span className="number-plate-ind">IND</span>
+                            <span>{perm.vehicleReg}</span>
+                          </div>
+                        </td>
 
-                      {/* Customer Name & Phone */}
-                      <td>
-                        <div style={{ fontWeight: 600, color: "var(--text-primary)" }}>
-                          {perm.customerName || "N/A"}
-                        </div>
-                        {perm.customerPhone && (
-                          <div
+                        {/* Customer Name & Phone */}
+                        <td>
+                          <div style={{ fontWeight: 600, color: "var(--text-primary)" }}>
+                            {perm.customerName || "N/A"}
+                          </div>
+                          {perm.customerPhone && (
+                            <div
+                              style={{
+                                fontSize: "0.76rem",
+                                color: "var(--text-muted)",
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "4px",
+                                marginTop: "2px"
+                              }}
+                            >
+                              <Phone size={11} color="var(--text-muted)" />
+                              <a
+                                href={`tel:${perm.customerPhone}`}
+                                style={{ color: "var(--text-muted)", textDecoration: "none" }}
+                              >
+                                {perm.customerPhone}
+                              </a>
+                            </div>
+                          )}
+                        </td>
+
+                        <td>
+                          <div style={{ fontFamily: "monospace", fontWeight: 600, fontSize: "0.82rem", color: "var(--text-secondary)" }}>
+                            {perm.permitNumber}
+                          </div>
+                          <div style={{ fontSize: "0.74rem", color: "var(--text-muted)", marginTop: "2px" }}>
+                            {perm.permitType || "State Goods Permit"}
+                          </div>
+                        </td>
+
+                        <td>
+                          <div style={{ fontSize: "0.82rem", color: "var(--text-primary)" }}>
+                            {perm.state || "Madhya Pradesh"}
+                          </div>
+                        </td>
+
+                        <td>
+                          <div style={{ display: "flex", alignItems: "center", gap: "5px", fontSize: "0.82rem", color: "var(--text-secondary)" }}>
+                            <Calendar size={13} color="var(--text-light)" />
+                            <span>{perm.expiryDate || "N/A"}</span>
+                          </div>
+                          <div style={{ marginTop: "2px" }}>
+                            {isExpired ? (
+                              <span className="status-badge status-critical" style={{ fontSize: "0.7rem", padding: "1px 6px" }}>
+                                Expired ({Math.abs(days)}d ago)
+                              </span>
+                            ) : isCritical ? (
+                              <span className="status-badge status-critical" style={{ fontSize: "0.7rem", padding: "1px 6px" }}>
+                                Due in {days}d
+                              </span>
+                            ) : isWarning ? (
+                              <span className="status-badge status-warning" style={{ fontSize: "0.7rem", padding: "1px 6px" }}>
+                                Due in {days}d
+                              </span>
+                            ) : (
+                              <span className="status-badge status-active" style={{ fontSize: "0.7rem", padding: "1px 6px" }}>
+                                Valid ({days}d left)
+                              </span>
+                            )}
+                          </div>
+                        </td>
+
+                        {/* Total Fee */}
+                        <td>
+                          <span style={{ fontWeight: 600, fontSize: "0.84rem", color: "var(--text-primary)" }}>
+                            {total > 0 ? `₹${total.toLocaleString("en-IN")}` : "-"}
+                          </span>
+                        </td>
+
+                        {/* Paid Amount */}
+                        <td>
+                          <span style={{ fontWeight: 600, fontSize: "0.84rem", color: paid > 0 ? "var(--color-success, #16a34a)" : "var(--text-muted)" }}>
+                            {paid > 0 ? `₹${paid.toLocaleString("en-IN")}` : "₹0"}
+                          </span>
+                        </td>
+
+                        {/* Due Balance */}
+                        <td>
+                          <span
                             style={{
-                              fontSize: "0.76rem",
-                              color: "var(--text-muted)",
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "4px",
-                              marginTop: "2px"
+                              fontWeight: 700,
+                              fontSize: "0.85rem",
+                              color: due > 0 ? "var(--color-danger, #dc2626)" : "var(--color-success, #16a34a)"
                             }}
                           >
-                            <Phone size={11} color="var(--text-muted)" />
-                            <a
-                              href={`tel:${perm.customerPhone}`}
-                              style={{ color: "var(--text-muted)", textDecoration: "none" }}
+                            {due > 0 ? `₹${due.toLocaleString("en-IN")}` : "₹0 (Cleared)"}
+                          </span>
+                        </td>
+
+                        {/* Payment Status Badge */}
+                        <td>
+                          {due === 0 && total > 0 ? (
+                            <span className="status-badge status-active">
+                              <CheckCircle2 size={11} style={{ marginRight: "3px" }} />
+                              Paid
+                            </span>
+                          ) : paid > 0 && due > 0 ? (
+                            <span className="status-badge status-warning">
+                              <Clock size={11} style={{ marginRight: "3px" }} />
+                              Partial
+                            </span>
+                          ) : due > 0 ? (
+                            <span
+                              className="status-badge"
+                              style={{
+                                background: "rgba(220, 38, 38, 0.1)",
+                                color: "#dc2626",
+                                border: "1px solid rgba(220, 38, 38, 0.2)"
+                              }}
                             >
-                              {perm.customerPhone}
+                              <AlertCircle size={11} style={{ marginRight: "3px" }} />
+                              Due
+                            </span>
+                          ) : (
+                            <span className="status-badge status-neutral">No Charges</span>
+                          )}
+                        </td>
+
+                        <td className="action-cell">
+                          <div className="action-group">
+                            {(() => {
+                              const rawPhone = (perm.customerPhone || "").replace(/\D/g, "");
+                              const fullPhone = rawPhone.length === 10 ? `91${rawPhone}` : rawPhone;
+                              const text = `नमस्ते ${perm.customerName || "ग्राहक"},\n\nगुरूकृपा यातायात से सादर प्रणाम। 🙏\nआपके वाहन *${perm.vehicleReg}* के *${perm.permitType || "परमिट"}* की वैधता दिनांक *${perm.expiryDate}* को समाप्त हो रही है। समय पर नवीनीकरण करवाएं।\n\nसंपर्क: गुरूकृपा यातायात कार्यालय`;
+                              return fullPhone ? (
+                                <a
+                                  href={`https://wa.me/${fullPhone}?text=${encodeURIComponent(text)}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="action-icon-btn"
+                                  style={{ color: "#16a34a" }}
+                                  title="Send WhatsApp Permit Reminder"
+                                >
+                                  <MessageSquare size={13} />
+                                </a>
+                              ) : null;
+                            })()}
+                            <button
+                              className="action-pill-btn"
+                              onClick={() => onRenewPermit(perm.id)}
+                              title="Renew Permit"
+                            >
+                              <RotateCw size={12} />
+                              <span>Renew</span>
+                            </button>
+                            <button
+                              className={`action-icon-btn ${historyCount > 0 ? "has-history" : ""}`}
+                              onClick={() => {
+                                setHistoryItem(perm);
+                                setIsHistoryOpen(true);
+                              }}
+                              title={historyCount > 0 ? `View Permit History (${historyCount} past terms)` : "View Permit History"}
+                            >
+                              <History size={13} />
+                            </button>
+                            <button
+                              className="action-icon-btn"
+                              onClick={() => onEditPermit(perm)}
+                              title="Edit Permit"
+                            >
+                              <Edit2 size={13} />
+                            </button>
+                            <button
+                              className="action-icon-btn action-icon-danger"
+                              onClick={() => onDeletePermit(perm.id, perm.permitNumber)}
+                              title="Delete Permit"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile-Friendly Permit Cards */}
+            <div className="mobile-only-cards" style={{ padding: "10px" }}>
+              {filteredPermits.map((perm) => {
+                const days = getDaysUntil(perm.expiryDate);
+                const isExpired = days < 0;
+                const isCritical = days >= 0 && days <= 7;
+                const isWarning = days > 7 && days <= 30;
+                const historyCount = perm.renewalHistory?.length || 0;
+
+                const total = Number(perm.totalAmount) || Number(perm.authFeePaid) || 0;
+                const paid = Number(perm.paidAmount) || 0;
+                const due = Number(perm.dueAmount) !== undefined ? Number(perm.dueAmount) : Math.max(0, total - paid);
+
+                const rawPhone = (perm.customerPhone || "").replace(/\D/g, "");
+                const fullPhone = rawPhone.length === 10 ? `91${rawPhone}` : rawPhone;
+                const waText = `नमस्ते ${perm.customerName || "ग्राहक"},\n\nगुरूकृपा यातायात से सादर प्रणाम। 🙏\nआपके वाहन *${perm.vehicleReg}* के *${perm.permitType || "परमिट"}* की वैधता दिनांक *${perm.expiryDate}* को समाप्त हो रही है। समय पर नवीनीकरण करवाएं।\n\nसंपर्क: गुरूकृपा यातायात कार्यालय`;
+
+                return (
+                  <div key={perm.id} className="mobile-entity-card">
+                    {/* Header: Number plate and Expiry Badge */}
+                    <div className="mobile-card-header">
+                      <div className="number-plate">
+                        <span className="number-plate-ind">IND</span>
+                        <span>{perm.vehicleReg}</span>
+                      </div>
+
+                      <div>
+                        {isExpired ? (
+                          <span className="status-badge status-critical" style={{ fontSize: "0.72rem" }}>
+                            Expired ({Math.abs(days)}d ago)
+                          </span>
+                        ) : isCritical ? (
+                          <span className="status-badge status-critical" style={{ fontSize: "0.72rem" }}>
+                            Due in {days}d
+                          </span>
+                        ) : isWarning ? (
+                          <span className="status-badge status-warning" style={{ fontSize: "0.72rem" }}>
+                            Due in {days}d
+                          </span>
+                        ) : (
+                          <span className="status-badge status-active" style={{ fontSize: "0.72rem" }}>
+                            Valid ({days}d left)
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Customer & Permit Info */}
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "6px" }}>
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: "0.95rem", color: "var(--text-primary)" }}>
+                          {perm.customerName || "Customer"}
+                        </div>
+                        {perm.customerPhone && (
+                          <div style={{ display: "flex", alignItems: "center", gap: "5px", fontSize: "0.78rem", color: "var(--text-muted)", marginTop: "2px" }}>
+                            <Phone size={12} />
+                            <a href={`tel:${perm.customerPhone}`} style={{ color: "#2563eb", textDecoration: "none", fontWeight: 600 }}>
+                              +{perm.customerPhone}
                             </a>
                           </div>
                         )}
-                      </td>
+                      </div>
 
-                      <td>
-                        <div style={{ fontFamily: "monospace", fontWeight: 600, fontSize: "0.82rem", color: "var(--text-secondary)" }}>
-                          {perm.permitNumber}
-                        </div>
-                        <div style={{ fontSize: "0.74rem", color: "var(--text-muted)", marginTop: "2px" }}>
-                          {perm.permitType || "State Goods Permit"}
-                        </div>
-                      </td>
-
-                      <td>
-                        <div style={{ fontSize: "0.82rem", color: "var(--text-primary)" }}>
+                      <div style={{ textAlign: "right" }}>
+                        <div style={{ fontSize: "0.78rem", fontWeight: 700, color: "var(--text-secondary)" }}>
                           {perm.state || "Madhya Pradesh"}
                         </div>
-                      </td>
-
-                      <td>
-                        <div style={{ display: "flex", alignItems: "center", gap: "5px", fontSize: "0.82rem", color: "var(--text-secondary)" }}>
-                          <Calendar size={13} color="var(--text-light)" />
-                          <span>{perm.expiryDate || "N/A"}</span>
+                        <div style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>
+                          {perm.permitType || "State Goods Permit"}
                         </div>
-                        <div style={{ marginTop: "2px" }}>
-                          {isExpired ? (
-                            <span className="status-badge status-critical" style={{ fontSize: "0.7rem", padding: "1px 6px" }}>
-                              Expired ({Math.abs(days)}d ago)
-                            </span>
-                          ) : isCritical ? (
-                            <span className="status-badge status-critical" style={{ fontSize: "0.7rem", padding: "1px 6px" }}>
-                              Due in {days}d
-                            </span>
-                          ) : isWarning ? (
-                            <span className="status-badge status-warning" style={{ fontSize: "0.7rem", padding: "1px 6px" }}>
-                              Due in {days}d
-                            </span>
-                          ) : (
-                            <span className="status-badge status-active" style={{ fontSize: "0.7rem", padding: "1px 6px" }}>
-                              Valid ({days}d left)
-                            </span>
-                          )}
-                        </div>
-                      </td>
+                      </div>
+                    </div>
 
-                      {/* Total Fee */}
-                      <td>
-                        <span style={{ fontWeight: 600, fontSize: "0.84rem", color: "var(--text-primary)" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.76rem", color: "var(--text-muted)", background: "#ffffff", padding: "4px 0", borderTop: "1px dashed var(--border-default)" }}>
+                      <span>Permit: <strong style={{ fontFamily: "monospace", color: "var(--text-primary)" }}>{perm.permitNumber}</strong></span>
+                      <span style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                        <Calendar size={11} /> Exp: <strong style={{ color: "var(--text-primary)" }}>{perm.expiryDate || "N/A"}</strong>
+                      </span>
+                    </div>
+
+                    {/* Financial 3-column Grid */}
+                    <div className="mobile-card-financial-grid">
+                      <div>
+                        <div style={{ fontSize: "0.68rem", color: "var(--text-muted)", textTransform: "uppercase" }}>Total Fee</div>
+                        <div style={{ fontWeight: 600, fontSize: "0.85rem", marginTop: "2px" }}>
                           {total > 0 ? `₹${total.toLocaleString("en-IN")}` : "-"}
-                        </span>
-                      </td>
-
-                      {/* Paid Amount */}
-                      <td>
-                        <span style={{ fontWeight: 600, fontSize: "0.84rem", color: paid > 0 ? "var(--color-success, #16a34a)" : "var(--text-muted)" }}>
+                        </div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: "0.68rem", color: "var(--text-muted)", textTransform: "uppercase" }}>Paid</div>
+                        <div style={{ fontWeight: 600, fontSize: "0.85rem", color: paid > 0 ? "var(--color-success, #16a34a)" : "var(--text-muted)", marginTop: "2px" }}>
                           {paid > 0 ? `₹${paid.toLocaleString("en-IN")}` : "₹0"}
-                        </span>
-                      </td>
-
-                      {/* Due Balance */}
-                      <td>
-                        <span
+                        </div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: "0.68rem", color: "var(--text-muted)", textTransform: "uppercase" }}>Due</div>
+                        <div
                           style={{
                             fontWeight: 700,
                             fontSize: "0.85rem",
-                            color: due > 0 ? "var(--color-danger, #dc2626)" : "var(--color-success, #16a34a)"
+                            color: due > 0 ? "var(--color-danger, #dc2626)" : "var(--color-success, #16a34a)",
+                            marginTop: "2px"
                           }}
                         >
-                          {due > 0 ? `₹${due.toLocaleString("en-IN")}` : "₹0 (Cleared)"}
-                        </span>
-                      </td>
-
-                      {/* Payment Status Badge */}
-                      <td>
-                        {due === 0 && total > 0 ? (
-                          <span className="status-badge status-active">
-                            <CheckCircle2 size={11} style={{ marginRight: "3px" }} />
-                            Paid
-                          </span>
-                        ) : paid > 0 && due > 0 ? (
-                          <span className="status-badge status-warning">
-                            <Clock size={11} style={{ marginRight: "3px" }} />
-                            Partial
-                          </span>
-                        ) : due > 0 ? (
-                          <span
-                            className="status-badge"
-                            style={{
-                              background: "rgba(220, 38, 38, 0.1)",
-                              color: "#dc2626",
-                              border: "1px solid rgba(220, 38, 38, 0.2)"
-                            }}
-                          >
-                            <AlertCircle size={11} style={{ marginRight: "3px" }} />
-                            Due
-                          </span>
-                        ) : (
-                          <span className="status-badge status-neutral">No Charges</span>
-                        )}
-                      </td>
-
-                      <td className="action-cell">
-                        <div className="action-group">
-                          {(() => {
-                            const rawPhone = (perm.customerPhone || "").replace(/\D/g, "");
-                            const fullPhone = rawPhone.length === 10 ? `91${rawPhone}` : rawPhone;
-                            const text = `नमस्ते ${perm.customerName || "ग्राहक"},\n\nगुरूकृपा यातायात से सादर प्रणाम। 🙏\nआपके वाहन *${perm.vehicleReg}* के *${perm.permitType || "परमिट"}* की वैधता दिनांक *${perm.expiryDate}* को समाप्त हो रही है। समय पर नवीनीकरण करवाएं।\n\nसंपर्क: गुरूकृपा यातायात कार्यालय`;
-                            return fullPhone ? (
-                              <a
-                                href={`https://wa.me/${fullPhone}?text=${encodeURIComponent(text)}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="action-icon-btn"
-                                style={{ color: "#16a34a" }}
-                                title="Send WhatsApp Permit Reminder"
-                              >
-                                <MessageSquare size={13} />
-                              </a>
-                            ) : null;
-                          })()}
-                          <button
-                            className="action-pill-btn"
-                            onClick={() => onRenewPermit(perm.id)}
-                            title="Renew Permit"
-                          >
-                            <RotateCw size={12} />
-                            <span>Renew</span>
-                          </button>
-                          <button
-                            className={`action-icon-btn ${historyCount > 0 ? "has-history" : ""}`}
-                            onClick={() => {
-                              setHistoryItem(perm);
-                              setIsHistoryOpen(true);
-                            }}
-                            title={historyCount > 0 ? `View Permit History (${historyCount} past terms)` : "View Permit History"}
-                          >
-                            <History size={13} />
-                          </button>
-                          <button
-                            className="action-icon-btn"
-                            onClick={() => onEditPermit(perm)}
-                            title="Edit Permit"
-                          >
-                            <Edit2 size={13} />
-                          </button>
-                          <button
-                            className="action-icon-btn action-icon-danger"
-                            onClick={() => onDeletePermit(perm.id, perm.permitNumber)}
-                            title="Delete Permit"
-                          >
-                            <Trash2 size={13} />
-                          </button>
+                          {due > 0 ? `₹${due.toLocaleString("en-IN")}` : "₹0"}
                         </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                      </div>
+                    </div>
+
+                    {/* Action Buttons Bar */}
+                    <div className="mobile-card-actions">
+                      {fullPhone && (
+                        <a
+                          href={`https://wa.me/${fullPhone}?text=${encodeURIComponent(waText)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="btn btn-sm"
+                          style={{
+                            background: "#25D366",
+                            color: "#ffffff",
+                            borderColor: "#22bf5b",
+                            flex: 1,
+                            fontWeight: 600
+                          }}
+                        >
+                          <MessageSquare size={13} />
+                          <span>WhatsApp</span>
+                        </a>
+                      )}
+
+                      <button
+                        className="btn btn-primary btn-sm"
+                        style={{ flex: 1 }}
+                        onClick={() => onRenewPermit(perm.id)}
+                      >
+                        <RotateCw size={12} />
+                        <span>Renew</span>
+                      </button>
+
+                      <button
+                        className="btn btn-secondary btn-sm"
+                        onClick={() => {
+                          setHistoryItem(perm);
+                          setIsHistoryOpen(true);
+                        }}
+                        title="History"
+                      >
+                        <History size={13} />
+                        {historyCount > 0 && <span style={{ fontSize: "0.68rem", fontWeight: 700 }}>({historyCount})</span>}
+                      </button>
+
+                      <button
+                        className="btn btn-secondary btn-sm"
+                        onClick={() => onEditPermit(perm)}
+                        title="Edit Permit"
+                      >
+                        <Edit2 size={13} />
+                      </button>
+
+                      <button
+                        className="btn btn-secondary btn-sm"
+                        style={{ color: "#dc2626" }}
+                        onClick={() => onDeletePermit(perm.id, perm.permitNumber)}
+                        title="Delete Permit"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </>
         )}
       </div>
 

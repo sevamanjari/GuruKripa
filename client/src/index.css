@@ -1346,6 +1346,54 @@ h1, h2, h3, h4, h5, h6 {
   }
 }
 
+/* Universal Mobile Entity Cards (Customers, Insurances, Permits) */
+.mobile-entity-card {
+  background: #ffffff;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  padding: 14px 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+}
+
+.mobile-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 8px;
+  gap: 8px;
+}
+
+.mobile-card-financial-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  background: #f8fafc;
+  padding: 8px 10px;
+  border-radius: var(--radius-md);
+  margin: 10px 0;
+  border: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+.mobile-card-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-top: 6px;
+}
+
+.mobile-card-actions .btn,
+.mobile-card-actions a.btn {
+  padding: 7px 10px;
+  font-size: 0.78rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
 
 
 
