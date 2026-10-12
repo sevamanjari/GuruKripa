@@ -13,7 +13,11 @@ import {
   IndianRupee,
   CheckCircle2,
   AlertCircle,
-  MessageSquare
+  MessageSquare,
+  ChevronDown,
+  ChevronUp,
+  SlidersHorizontal,
+  X
 } from "lucide-react";
 import HistoryModal from "./Modals/HistoryModal.jsx";
 
@@ -28,6 +32,8 @@ export default function PermitsView({
   const [filterStatus, setFilterStatus] = useState("All");
   const [filterPayment, setFilterPayment] = useState("All");
   const [filterDueDate, setFilterDueDate] = useState("All");
+  const [showOverview, setShowOverview] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
 
   // History Modal State
   const [historyItem, setHistoryItem] = useState(null);
@@ -111,186 +117,342 @@ export default function PermitsView({
     return d >= 0 && d <= 30;
   }).length;
 
+  const activeFilters = [];
+  if (filterDueDate !== "All") activeFilters.push({ key: "due", label: `Due: ${filterDueDate === "expired" ? "Expired" : filterDueDate + "d"}`, reset: () => setFilterDueDate("All") });
+  if (filterPayment !== "All") activeFilters.push({ key: "payment", label: `Payment: ${filterPayment}`, reset: () => setFilterPayment("All") });
+  if (filterStatus !== "All") activeFilters.push({ key: "status", label: `Status: ${filterStatus}`, reset: () => setFilterStatus("All") });
+  const hasActiveFilters = activeFilters.length > 0;
+
   return (
     <div>
-      {/* Uniform Workspace Header */}
-      <div className="view-header">
-        <div>
-          <h1 className="view-title">Commercial Vehicle Permits</h1>
+      {/* Compact Workspace Header */}
+      <div className="view-header compact-view-header">
+        <div className="view-header-main">
+          <h1 className="view-title">Vehicle Permits</h1>
           <p className="view-subtitle">
-            Track State Goods, National (NP Form 48), and Tourist permits linked by customer phone. Track fees, collections, and dues.
+            Commercial and passenger vehicle transport permits, renewal tracking, and fee accounts.
           </p>
         </div>
 
         <div className="view-header-actions">
-          <button className="btn btn-primary btn-sm" onClick={onAddPermit}>
+          <button type="button" className="btn btn-primary btn-sm" onClick={onAddPermit}>
             <Plus size={14} />
             <span>Add Permit</span>
           </button>
         </div>
       </div>
 
-      {/* Financial Overview Cards */}
-      <div className="metric-grid">
-        <div className="metric-card" style={{ padding: "14px 16px" }}>
-          <div className="metric-top" style={{ marginBottom: "6px" }}>
-            <span className="metric-label">Total Permits</span>
-            <div className="metric-icon-wrap">
-              <FileText size={14} />
-            </div>
-          </div>
-          <div className="metric-value" style={{ fontSize: "1.4rem" }}>
-            {permits.length}
-          </div>
-          <div className="metric-caption">All registered vehicle permits</div>
-        </div>
-
-        <div className="metric-card" style={{ padding: "14px 16px" }}>
-          <div className="metric-top" style={{ marginBottom: "6px" }}>
-            <span className="metric-label">Total Permit Charges</span>
-            <div className="metric-icon-wrap">
-              <IndianRupee size={14} />
-            </div>
-          </div>
-          <div className="metric-value" style={{ fontSize: "1.4rem" }}>
-            ₹{totalBilled.toLocaleString("en-IN")}
-          </div>
-          <div className="metric-caption">Aggregate permit authorization fees</div>
-        </div>
-
-        <div className="metric-card" style={{ padding: "14px 16px" }}>
-          <div className="metric-top" style={{ marginBottom: "6px" }}>
-            <span className="metric-label">Fees Collected</span>
-            <div className="metric-icon-wrap" style={{ color: "var(--color-success, #16a34a)" }}>
-              <CheckCircle2 size={14} />
-            </div>
-          </div>
-          <div className="metric-value" style={{ fontSize: "1.4rem", color: "var(--color-success, #16a34a)" }}>
-            ₹{totalCollected.toLocaleString("en-IN")}
-          </div>
-          <div className="metric-caption">Fees paid by customers</div>
-        </div>
-
+      {/* On-Demand Collapsible Overview Stats */}
+      <div className="collapsible-stats-section">
         <div
-          className="metric-card"
-          style={{
-            padding: "14px 16px",
-            borderLeft: totalDue > 0 ? "3px solid var(--color-danger, #dc2626)" : "1px solid var(--border-default)"
-          }}
+          className={`compact-stats-bar ${showOverview ? "active" : ""}`}
+          onClick={() => setShowOverview(!showOverview)}
+          role="button"
+          tabIndex={0}
         >
-          <div className="metric-top" style={{ marginBottom: "6px" }}>
-            <span className="metric-label">Outstanding Permit Dues</span>
-            <div className="metric-icon-wrap" style={{ color: totalDue > 0 ? "var(--color-danger, #dc2626)" : "var(--color-success, #16a34a)" }}>
-              <AlertCircle size={14} />
+          <div className="compact-stats-left">
+            <div className="compact-stat-pill">
+              <FileText size={13} style={{ color: "var(--brand-primary)" }} />
+              <span>Permits:</span>
+              <strong>{permits.length}</strong>
+            </div>
+
+            <div className="compact-stat-pill">
+              <IndianRupee size={13} style={{ color: "var(--text-muted)" }} />
+              <span>Charges:</span>
+              <strong>₹{totalBilled.toLocaleString("en-IN")}</strong>
+            </div>
+
+            <div className="compact-stat-pill success">
+              <CheckCircle2 size={13} />
+              <span>Collected:</span>
+              <strong>₹{totalCollected.toLocaleString("en-IN")}</strong>
+            </div>
+
+            <div className={`compact-stat-pill ${totalDue > 0 ? "danger" : ""}`}>
+              <AlertCircle size={13} />
+              <span>Due:</span>
+              <strong>₹{totalDue.toLocaleString("en-IN")}</strong>
+            </div>
+
+            {count30Days > 0 && (
+              <div className="compact-stat-pill" style={{ background: "#fff7ed", color: "#c2410c", border: "1px solid #ffedd5" }}>
+                <Clock size={12} />
+                <span>Expiring (30d):</span>
+                <strong>{count30Days}</strong>
+              </div>
+            )}
+          </div>
+
+          <button
+            type="button"
+            className="btn-toggle-stats"
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowOverview(!showOverview);
+            }}
+            title={showOverview ? "Hide detailed cards" : "Show detailed cards"}
+          >
+            <span>{showOverview ? "Hide Stats" : "Show Stats"}</span>
+            {showOverview ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+          </button>
+        </div>
+
+        {/* Detailed 4 Metric Cards */}
+        {showOverview && (
+          <div className="metric-grid animated-dropdown">
+            <div className="metric-card" style={{ padding: "14px 16px" }}>
+              <div className="metric-top" style={{ marginBottom: "6px" }}>
+                <span className="metric-label">Total Permits</span>
+                <div className="metric-icon-wrap">
+                  <FileText size={14} />
+                </div>
+              </div>
+              <div className="metric-value" style={{ fontSize: "1.4rem" }}>
+                {permits.length}
+              </div>
+              <div className="metric-caption">All registered vehicle permits</div>
+            </div>
+
+            <div className="metric-card" style={{ padding: "14px 16px" }}>
+              <div className="metric-top" style={{ marginBottom: "6px" }}>
+                <span className="metric-label">Total Permit Charges</span>
+                <div className="metric-icon-wrap">
+                  <IndianRupee size={14} />
+                </div>
+              </div>
+              <div className="metric-value" style={{ fontSize: "1.4rem" }}>
+                ₹{totalBilled.toLocaleString("en-IN")}
+              </div>
+              <div className="metric-caption">Aggregate permit authorization fees</div>
+            </div>
+
+            <div className="metric-card" style={{ padding: "14px 16px" }}>
+              <div className="metric-top" style={{ marginBottom: "6px" }}>
+                <span className="metric-label">Fees Collected</span>
+                <div className="metric-icon-wrap" style={{ color: "var(--color-success, #16a34a)" }}>
+                  <CheckCircle2 size={14} />
+                </div>
+              </div>
+              <div className="metric-value" style={{ fontSize: "1.4rem", color: "var(--color-success, #16a34a)" }}>
+                ₹{totalCollected.toLocaleString("en-IN")}
+              </div>
+              <div className="metric-caption">Fees paid by customers</div>
+            </div>
+
+            <div
+              className="metric-card"
+              style={{
+                padding: "14px 16px",
+                borderLeft: totalDue > 0 ? "3px solid var(--color-danger, #dc2626)" : "1px solid var(--border-default)"
+              }}
+            >
+              <div className="metric-top" style={{ marginBottom: "6px" }}>
+                <span className="metric-label">Outstanding Permit Dues</span>
+                <div className="metric-icon-wrap" style={{ color: totalDue > 0 ? "var(--color-danger, #dc2626)" : "var(--color-success, #16a34a)" }}>
+                  <AlertCircle size={14} />
+                </div>
+              </div>
+              <div
+                className="metric-value"
+                style={{
+                  fontSize: "1.4rem",
+                  color: totalDue > 0 ? "var(--color-danger, #dc2626)" : "var(--color-success, #16a34a)"
+                }}
+              >
+                ₹{totalDue.toLocaleString("en-IN")}
+              </div>
+              <div className="metric-caption">
+                {permitsWithDue} permit{permitsWithDue === 1 ? "" : "s"} with balance due
+              </div>
             </div>
           </div>
-          <div
-            className="metric-value"
-            style={{
-              fontSize: "1.4rem",
-              color: totalDue > 0 ? "var(--color-danger, #dc2626)" : "var(--color-success, #16a34a)"
-            }}
+        )}
+      </div>
+
+      {/* Clean Compact Search & Dropdown Filter Control */}
+      <div className="filter-controls-container">
+        <div className="search-filter-row">
+          <div className="search-wrap">
+            <Search size={15} className="search-icon" />
+            <input
+              type="text"
+              className="form-input"
+              placeholder="Search by vehicle reg, permit no, type, customer, phone..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+            {searchTerm && (
+              <button
+                type="button"
+                className="search-clear-btn"
+                onClick={() => setSearchTerm("")}
+                title="Clear search query"
+              >
+                <X size={13} />
+              </button>
+            )}
+          </div>
+
+          <button
+            type="button"
+            className={`filter-toggle-btn ${showFilters || hasActiveFilters ? "active" : ""}`}
+            onClick={() => setShowFilters(!showFilters)}
+            title="Filter permits"
           >
-            ₹{totalDue.toLocaleString("en-IN")}
-          </div>
-          <div className="metric-caption">
-            {permitsWithDue} permit{permitsWithDue === 1 ? "" : "s"} with balance due
-          </div>
-        </div>
-      </div>
-
-      {/* Uniform Renewal Due Filter Chips */}
-      <div className="chips-bar">
-        <span className="chips-label">
-          <Clock size={13} />
-          Renewal Due:
-        </span>
-
-        <button
-          className={`chip-btn ${filterDueDate === "All" ? "active" : ""}`}
-          onClick={() => setFilterDueDate("All")}
-        >
-          All
-          <span className="chip-count">{permits.length}</span>
-        </button>
-
-        <button
-          className={`chip-btn ${filterDueDate === "1" ? "active" : ""}`}
-          onClick={() => setFilterDueDate("1")}
-        >
-          Within 1 Day
-          <span className="chip-count">{count1Day}</span>
-        </button>
-
-        <button
-          className={`chip-btn ${filterDueDate === "7" ? "active" : ""}`}
-          onClick={() => setFilterDueDate("7")}
-        >
-          Within 7 Days
-          <span className="chip-count">{count7Days}</span>
-        </button>
-
-        <button
-          className={`chip-btn ${filterDueDate === "15" ? "active" : ""}`}
-          onClick={() => setFilterDueDate("15")}
-        >
-          Within 15 Days
-          <span className="chip-count">{count15Days}</span>
-        </button>
-
-        <button
-          className={`chip-btn ${filterDueDate === "30" ? "active" : ""}`}
-          onClick={() => setFilterDueDate("30")}
-        >
-          Within 30 Days
-          <span className="chip-count">{count30Days}</span>
-        </button>
-
-        <button
-          className={`chip-btn ${filterDueDate === "expired" ? "active" : ""}`}
-          onClick={() => setFilterDueDate("expired")}
-        >
-          Overdue / Expired
-          <span className="chip-count">{countExpired}</span>
-        </button>
-      </div>
-
-      {/* Uniform Search and Filter Toolbar */}
-      <div className="filter-toolbar">
-        <div className="search-wrap">
-          <Search size={15} className="search-icon" />
-          <input
-            type="text"
-            className="form-input"
-            placeholder="Search by vehicle reg, permit no, type, customer, phone..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+            <SlidersHorizontal size={14} />
+            <span>Filters</span>
+            {hasActiveFilters && (
+              <span className="filter-active-badge">
+                {activeFilters.length}
+              </span>
+            )}
+            {showFilters ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+          </button>
         </div>
 
-        <select
-          className="form-select"
-          style={{ width: "auto", minWidth: "150px" }}
-          value={filterPayment}
-          onChange={(e) => setFilterPayment(e.target.value)}
-        >
-          <option value="All">All Payments</option>
-          <option value="Due">Pending Dues Only ({permitsWithDue})</option>
-          <option value="Partial">Partially Paid</option>
-          <option value="Paid">Fully Paid</option>
-        </select>
+        {/* Active Filter Chips */}
+        {hasActiveFilters && !showFilters && (
+          <div className="active-filters-chips">
+            <span className="active-filters-label">Active:</span>
+            {activeFilters.map((af) => (
+              <span key={af.key} className="filter-tag">
+                {af.label}
+                <button type="button" onClick={af.reset} title="Remove filter">
+                  <X size={11} />
+                </button>
+              </span>
+            ))}
+            <button
+              type="button"
+              className="clear-all-filters-btn"
+              onClick={() => {
+                setFilterDueDate("All");
+                setFilterPayment("All");
+                setFilterStatus("All");
+              }}
+            >
+              Reset
+            </button>
+          </div>
+        )}
 
-        <select
-          className="form-select"
-          style={{ width: "auto", minWidth: "150px" }}
-          value={filterStatus}
-          onChange={(e) => setFilterStatus(e.target.value)}
-        >
-          <option value="All">All Expiry Status</option>
-          <option value="Active">Active</option>
-          <option value="Expiring Soon">Expiring Soon (&lt; 30d)</option>
-          <option value="Expired">Expired</option>
-        </select>
+        {/* Dropdown Filters Tray */}
+        {showFilters && (
+          <div className="filters-dropdown-tray animated-dropdown">
+            {/* Renewal Due Chips */}
+            <div style={{ marginBottom: "12px" }}>
+              <div className="chips-bar" style={{ margin: 0, padding: "8px 10px" }}>
+                <span className="chips-label">
+                  <Clock size={13} />
+                  Renewal Due:
+                </span>
+
+                <button
+                  type="button"
+                  className={`chip-btn ${filterDueDate === "All" ? "active" : ""}`}
+                  onClick={() => setFilterDueDate("All")}
+                >
+                  All
+                  <span className="chip-count">{permits.length}</span>
+                </button>
+
+                <button
+                  type="button"
+                  className={`chip-btn ${filterDueDate === "1" ? "active" : ""}`}
+                  onClick={() => setFilterDueDate("1")}
+                >
+                  Within 1 Day
+                  <span className="chip-count">{count1Day}</span>
+                </button>
+
+                <button
+                  type="button"
+                  className={`chip-btn ${filterDueDate === "7" ? "active" : ""}`}
+                  onClick={() => setFilterDueDate("7")}
+                >
+                  Within 7 Days
+                  <span className="chip-count">{count7Days}</span>
+                </button>
+
+                <button
+                  type="button"
+                  className={`chip-btn ${filterDueDate === "15" ? "active" : ""}`}
+                  onClick={() => setFilterDueDate("15")}
+                >
+                  Within 15 Days
+                  <span className="chip-count">{count15Days}</span>
+                </button>
+
+                <button
+                  type="button"
+                  className={`chip-btn ${filterDueDate === "30" ? "active" : ""}`}
+                  onClick={() => setFilterDueDate("30")}
+                >
+                  Within 30 Days
+                  <span className="chip-count">{count30Days}</span>
+                </button>
+
+                <button
+                  type="button"
+                  className={`chip-btn ${filterDueDate === "expired" ? "active" : ""}`}
+                  onClick={() => setFilterDueDate("expired")}
+                >
+                  Overdue / Expired
+                  <span className="chip-count">{countExpired}</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="filters-tray-grid">
+              <div className="filter-item">
+                <label className="filter-item-label">Payment Status</label>
+                <select
+                  className="form-select"
+                  value={filterPayment}
+                  onChange={(e) => setFilterPayment(e.target.value)}
+                >
+                  <option value="All">All Payments</option>
+                  <option value="Due">Pending Dues Only ({permitsWithDue})</option>
+                  <option value="Partial">Partially Paid</option>
+                  <option value="Paid">Fully Paid</option>
+                </select>
+              </div>
+
+              <div className="filter-item">
+                <label className="filter-item-label">Expiry Status</label>
+                <select
+                  className="form-select"
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value)}
+                >
+                  <option value="All">All Expiry Status</option>
+                  <option value="Active">Active</option>
+                  <option value="Expiring Soon">Expiring Soon (&lt; 30d)</option>
+                  <option value="Expired">Expired</option>
+                </select>
+              </div>
+            </div>
+
+            {hasActiveFilters && (
+              <div className="filters-tray-footer">
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => {
+                    setFilterDueDate("All");
+                    setFilterPayment("All");
+                    setFilterStatus("All");
+                  }}
+                  style={{ display: "flex", alignItems: "center", gap: "4px" }}
+                >
+                  <X size={12} />
+                  <span>Reset All Filters</span>
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Uniform Table Card */}

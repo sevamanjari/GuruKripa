@@ -14,7 +14,11 @@ import {
   IndianRupee,
   CheckCircle2,
   AlertCircle,
-  MessageSquare
+  MessageSquare,
+  ChevronDown,
+  ChevronUp,
+  SlidersHorizontal,
+  X
 } from "lucide-react";
 import HistoryModal from "./Modals/HistoryModal.jsx";
 
@@ -32,6 +36,8 @@ export default function InsuranceView({
   const [filterPayment, setFilterPayment] = useState("All");
   const [filterDueDate, setFilterDueDate] = useState("All");
   const [filterUnderwriter, setFilterUnderwriter] = useState("All");
+  const [showOverview, setShowOverview] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
 
   // History Modal State
   const [historyItem, setHistoryItem] = useState(null);
@@ -119,211 +125,373 @@ export default function InsuranceView({
     return d >= 0 && d <= 30;
   }).length;
 
+  const activeFilters = [];
+  if (filterDueDate !== "All") activeFilters.push({ key: "due", label: `Due: ${filterDueDate === "expired" ? "Expired" : filterDueDate + "d"}`, reset: () => setFilterDueDate("All") });
+  if (filterPayment !== "All") activeFilters.push({ key: "payment", label: `Payment: ${filterPayment}`, reset: () => setFilterPayment("All") });
+  if (filterStatus !== "All") activeFilters.push({ key: "status", label: `Status: ${filterStatus}`, reset: () => setFilterStatus("All") });
+  if (filterUnderwriter !== "All") activeFilters.push({ key: "underwriter", label: `Insurer: ${filterUnderwriter}`, reset: () => setFilterUnderwriter("All") });
+  const hasActiveFilters = activeFilters.length > 0;
+
   return (
     <div>
-      {/* Uniform Workspace Header */}
-      <div className="view-header">
-        <div>
-          <h1 className="view-title">Vehicle Insurance Policies</h1>
+      {/* Compact Workspace Header */}
+      <div className="view-header compact-view-header">
+        <div className="view-header-main">
+          <h1 className="view-title">Vehicle Insurances</h1>
           <p className="view-subtitle">
-            Track commercial and private vehicle insurance policies linked by customer phone. Monitor premiums, collections, and outstanding dues.
+            Vehicle insurance policies, renewal cycles, underwriters, and premium collections.
           </p>
         </div>
 
         <div className="view-header-actions">
           {onOpenManageUnderwriters && (
             <button
+              type="button"
               className="btn btn-secondary btn-sm"
               onClick={onOpenManageUnderwriters}
               style={{ display: "flex", alignItems: "center", gap: "6px" }}
             >
-              <Building2 size={14} />
+              <Building2 size={13} />
               <span>Underwriters ({underwriters.length})</span>
             </button>
           )}
-          <button className="btn btn-primary btn-sm" onClick={onAddInsurance}>
+          <button type="button" className="btn btn-primary btn-sm" onClick={onAddInsurance}>
             <Plus size={14} />
             <span>Add Insurance</span>
           </button>
         </div>
       </div>
 
-      {/* Financial Overview Cards */}
-      <div className="metric-grid">
-        <div className="metric-card" style={{ padding: "14px 16px" }}>
-          <div className="metric-top" style={{ marginBottom: "6px" }}>
-            <span className="metric-label">Total Policies</span>
-            <div className="metric-icon-wrap">
-              <Shield size={14} />
-            </div>
-          </div>
-          <div className="metric-value" style={{ fontSize: "1.4rem" }}>
-            {insurances.length}
-          </div>
-          <div className="metric-caption">Active & historical policies</div>
-        </div>
-
-        <div className="metric-card" style={{ padding: "14px 16px" }}>
-          <div className="metric-top" style={{ marginBottom: "6px" }}>
-            <span className="metric-label">Total Premiums</span>
-            <div className="metric-icon-wrap">
-              <IndianRupee size={14} />
-            </div>
-          </div>
-          <div className="metric-value" style={{ fontSize: "1.4rem" }}>
-            ₹{totalBilled.toLocaleString("en-IN")}
-          </div>
-          <div className="metric-caption">Aggregate premium charges</div>
-        </div>
-
-        <div className="metric-card" style={{ padding: "14px 16px" }}>
-          <div className="metric-top" style={{ marginBottom: "6px" }}>
-            <span className="metric-label">Premiums Collected</span>
-            <div className="metric-icon-wrap" style={{ color: "var(--color-success, #16a34a)" }}>
-              <CheckCircle2 size={14} />
-            </div>
-          </div>
-          <div className="metric-value" style={{ fontSize: "1.4rem", color: "var(--color-success, #16a34a)" }}>
-            ₹{totalCollected.toLocaleString("en-IN")}
-          </div>
-          <div className="metric-caption">Payments received to date</div>
-        </div>
-
+      {/* On-Demand Collapsible Overview Stats */}
+      <div className="collapsible-stats-section">
         <div
-          className="metric-card"
-          style={{
-            padding: "14px 16px",
-            borderLeft: totalDue > 0 ? "3px solid var(--color-danger, #dc2626)" : "1px solid var(--border-default)"
-          }}
+          className={`compact-stats-bar ${showOverview ? "active" : ""}`}
+          onClick={() => setShowOverview(!showOverview)}
+          role="button"
+          tabIndex={0}
         >
-          <div className="metric-top" style={{ marginBottom: "6px" }}>
-            <span className="metric-label">Outstanding Premium Dues</span>
-            <div className="metric-icon-wrap" style={{ color: totalDue > 0 ? "var(--color-danger, #dc2626)" : "var(--color-success, #16a34a)" }}>
-              <AlertCircle size={14} />
+          <div className="compact-stats-left">
+            <div className="compact-stat-pill">
+              <Shield size={13} style={{ color: "var(--brand-primary)" }} />
+              <span>Policies:</span>
+              <strong>{insurances.length}</strong>
+            </div>
+
+            <div className="compact-stat-pill">
+              <IndianRupee size={13} style={{ color: "var(--text-muted)" }} />
+              <span>Premiums:</span>
+              <strong>₹{totalBilled.toLocaleString("en-IN")}</strong>
+            </div>
+
+            <div className="compact-stat-pill success">
+              <CheckCircle2 size={13} />
+              <span>Paid:</span>
+              <strong>₹{totalCollected.toLocaleString("en-IN")}</strong>
+            </div>
+
+            <div className={`compact-stat-pill ${totalDue > 0 ? "danger" : ""}`}>
+              <AlertCircle size={13} />
+              <span>Due:</span>
+              <strong>₹{totalDue.toLocaleString("en-IN")}</strong>
+            </div>
+
+            {count30Days > 0 && (
+              <div className="compact-stat-pill" style={{ background: "#fff7ed", color: "#c2410c", border: "1px solid #ffedd5" }}>
+                <Clock size={12} />
+                <span>Expiring (30d):</span>
+                <strong>{count30Days}</strong>
+              </div>
+            )}
+          </div>
+
+          <button
+            type="button"
+            className="btn-toggle-stats"
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowOverview(!showOverview);
+            }}
+            title={showOverview ? "Hide detailed cards" : "Show detailed cards"}
+          >
+            <span>{showOverview ? "Hide Stats" : "Show Stats"}</span>
+            {showOverview ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+          </button>
+        </div>
+
+        {/* Detailed 4 Metric Cards */}
+        {showOverview && (
+          <div className="metric-grid animated-dropdown">
+            <div className="metric-card" style={{ padding: "14px 16px" }}>
+              <div className="metric-top" style={{ marginBottom: "6px" }}>
+                <span className="metric-label">Total Policies</span>
+                <div className="metric-icon-wrap">
+                  <Shield size={14} />
+                </div>
+              </div>
+              <div className="metric-value" style={{ fontSize: "1.4rem" }}>
+                {insurances.length}
+              </div>
+              <div className="metric-caption">Active & historical policies</div>
+            </div>
+
+            <div className="metric-card" style={{ padding: "14px 16px" }}>
+              <div className="metric-top" style={{ marginBottom: "6px" }}>
+                <span className="metric-label">Total Premiums</span>
+                <div className="metric-icon-wrap">
+                  <IndianRupee size={14} />
+                </div>
+              </div>
+              <div className="metric-value" style={{ fontSize: "1.4rem" }}>
+                ₹{totalBilled.toLocaleString("en-IN")}
+              </div>
+              <div className="metric-caption">Aggregate premium charges</div>
+            </div>
+
+            <div className="metric-card" style={{ padding: "14px 16px" }}>
+              <div className="metric-top" style={{ marginBottom: "6px" }}>
+                <span className="metric-label">Premiums Collected</span>
+                <div className="metric-icon-wrap" style={{ color: "var(--color-success, #16a34a)" }}>
+                  <CheckCircle2 size={14} />
+                </div>
+              </div>
+              <div className="metric-value" style={{ fontSize: "1.4rem", color: "var(--color-success, #16a34a)" }}>
+                ₹{totalCollected.toLocaleString("en-IN")}
+              </div>
+              <div className="metric-caption">Payments received to date</div>
+            </div>
+
+            <div
+              className="metric-card"
+              style={{
+                padding: "14px 16px",
+                borderLeft: totalDue > 0 ? "3px solid var(--color-danger, #dc2626)" : "1px solid var(--border-default)"
+              }}
+            >
+              <div className="metric-top" style={{ marginBottom: "6px" }}>
+                <span className="metric-label">Outstanding Premium Dues</span>
+                <div className="metric-icon-wrap" style={{ color: totalDue > 0 ? "var(--color-danger, #dc2626)" : "var(--color-success, #16a34a)" }}>
+                  <AlertCircle size={14} />
+                </div>
+              </div>
+              <div
+                className="metric-value"
+                style={{
+                  fontSize: "1.4rem",
+                  color: totalDue > 0 ? "var(--color-danger, #dc2626)" : "var(--color-success, #16a34a)"
+                }}
+              >
+                ₹{totalDue.toLocaleString("en-IN")}
+              </div>
+              <div className="metric-caption">
+                {policiesWithDue} polic{policiesWithDue === 1 ? "y" : "ies"} with unpaid balance
+              </div>
             </div>
           </div>
-          <div
-            className="metric-value"
-            style={{
-              fontSize: "1.4rem",
-              color: totalDue > 0 ? "var(--color-danger, #dc2626)" : "var(--color-success, #16a34a)"
-            }}
-          >
-            ₹{totalDue.toLocaleString("en-IN")}
-          </div>
-          <div className="metric-caption">
-            {policiesWithDue} polic{policiesWithDue === 1 ? "y" : "ies"} with unpaid balance
-          </div>
-        </div>
+        )}
       </div>
 
-      {/* Uniform Renewal Due Filter Chips */}
-      <div className="chips-bar">
-        <span className="chips-label">
-          <Clock size={13} />
-          Renewal Due:
-        </span>
+      {/* Clean Compact Search & Dropdown Filter Control */}
+      <div className="filter-controls-container">
+        <div className="search-filter-row">
+          <div className="search-wrap">
+            <Search size={15} className="search-icon" />
+            <input
+              type="text"
+              className="form-input"
+              placeholder="Search by vehicle reg, policy no, insurer, customer, phone..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+            {searchTerm && (
+              <button
+                type="button"
+                className="search-clear-btn"
+                onClick={() => setSearchTerm("")}
+                title="Clear search query"
+              >
+                <X size={13} />
+              </button>
+            )}
+          </div>
 
-        <button
-          className={`chip-btn ${filterDueDate === "All" ? "active" : ""}`}
-          onClick={() => setFilterDueDate("All")}
-        >
-          All
-          <span className="chip-count">{insurances.length}</span>
-        </button>
-
-        <button
-          className={`chip-btn ${filterDueDate === "1" ? "active" : ""}`}
-          onClick={() => setFilterDueDate("1")}
-        >
-          Within 1 Day
-          <span className="chip-count">{count1Day}</span>
-        </button>
-
-        <button
-          className={`chip-btn ${filterDueDate === "7" ? "active" : ""}`}
-          onClick={() => setFilterDueDate("7")}
-        >
-          Within 7 Days
-          <span className="chip-count">{count7Days}</span>
-        </button>
-
-        <button
-          className={`chip-btn ${filterDueDate === "15" ? "active" : ""}`}
-          onClick={() => setFilterDueDate("15")}
-        >
-          Within 15 Days
-          <span className="chip-count">{count15Days}</span>
-        </button>
-
-        <button
-          className={`chip-btn ${filterDueDate === "30" ? "active" : ""}`}
-          onClick={() => setFilterDueDate("30")}
-        >
-          Within 30 Days
-          <span className="chip-count">{count30Days}</span>
-        </button>
-
-        <button
-          className={`chip-btn ${filterDueDate === "expired" ? "active" : ""}`}
-          onClick={() => setFilterDueDate("expired")}
-        >
-          Overdue / Expired
-          <span className="chip-count">{countExpired}</span>
-        </button>
-      </div>
-
-      {/* Uniform Search and Filter Toolbar */}
-      <div className="filter-toolbar">
-        <div className="search-wrap">
-          <Search size={15} className="search-icon" />
-          <input
-            type="text"
-            className="form-input"
-            placeholder="Search by vehicle reg, policy no, insurer, customer, phone..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+          <button
+            type="button"
+            className={`filter-toggle-btn ${showFilters || hasActiveFilters ? "active" : ""}`}
+            onClick={() => setShowFilters(!showFilters)}
+            title="Filter policies"
+          >
+            <SlidersHorizontal size={14} />
+            <span>Filters</span>
+            {hasActiveFilters && (
+              <span className="filter-active-badge">
+                {activeFilters.length}
+              </span>
+            )}
+            {showFilters ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+          </button>
         </div>
 
-        <select
-          className="form-select"
-          style={{ width: "auto", minWidth: "150px" }}
-          value={filterPayment}
-          onChange={(e) => setFilterPayment(e.target.value)}
-        >
-          <option value="All">All Payments</option>
-          <option value="Due">Pending Dues Only ({policiesWithDue})</option>
-          <option value="Partial">Partially Paid</option>
-          <option value="Paid">Fully Paid</option>
-        </select>
-
-        <select
-          className="form-select"
-          style={{ width: "auto", minWidth: "150px" }}
-          value={filterStatus}
-          onChange={(e) => setFilterStatus(e.target.value)}
-        >
-          <option value="All">All Expiry Status</option>
-          <option value="Active">Active</option>
-          <option value="Expiring Soon">Expiring Soon (&lt; 30d)</option>
-          <option value="Expired">Expired</option>
-        </select>
-
-        {underwriters.length > 0 && (
-          <select
-            className="form-select"
-            style={{ width: "auto", minWidth: "180px" }}
-            value={filterUnderwriter}
-            onChange={(e) => setFilterUnderwriter(e.target.value)}
-          >
-            <option value="All">All Underwriters ({underwriters.length})</option>
-            {underwriters.map((u) => (
-              <option key={u.id} value={u.name}>
-                {u.name}
-              </option>
+        {/* Active Filter Chips */}
+        {hasActiveFilters && !showFilters && (
+          <div className="active-filters-chips">
+            <span className="active-filters-label">Active:</span>
+            {activeFilters.map((af) => (
+              <span key={af.key} className="filter-tag">
+                {af.label}
+                <button type="button" onClick={af.reset} title="Remove filter">
+                  <X size={11} />
+                </button>
+              </span>
             ))}
-          </select>
+            <button
+              type="button"
+              className="clear-all-filters-btn"
+              onClick={() => {
+                setFilterDueDate("All");
+                setFilterPayment("All");
+                setFilterStatus("All");
+                setFilterUnderwriter("All");
+              }}
+            >
+              Reset
+            </button>
+          </div>
+        )}
+
+        {/* Dropdown Filters Tray */}
+        {showFilters && (
+          <div className="filters-dropdown-tray animated-dropdown">
+            {/* Renewal Due Chips */}
+            <div style={{ marginBottom: "12px" }}>
+              <div className="chips-bar" style={{ margin: 0, padding: "8px 10px" }}>
+                <span className="chips-label">
+                  <Clock size={13} />
+                  Renewal Due:
+                </span>
+
+                <button
+                  type="button"
+                  className={`chip-btn ${filterDueDate === "All" ? "active" : ""}`}
+                  onClick={() => setFilterDueDate("All")}
+                >
+                  All
+                  <span className="chip-count">{insurances.length}</span>
+                </button>
+
+                <button
+                  type="button"
+                  className={`chip-btn ${filterDueDate === "1" ? "active" : ""}`}
+                  onClick={() => setFilterDueDate("1")}
+                >
+                  Within 1 Day
+                  <span className="chip-count">{count1Day}</span>
+                </button>
+
+                <button
+                  type="button"
+                  className={`chip-btn ${filterDueDate === "7" ? "active" : ""}`}
+                  onClick={() => setFilterDueDate("7")}
+                >
+                  Within 7 Days
+                  <span className="chip-count">{count7Days}</span>
+                </button>
+
+                <button
+                  type="button"
+                  className={`chip-btn ${filterDueDate === "15" ? "active" : ""}`}
+                  onClick={() => setFilterDueDate("15")}
+                >
+                  Within 15 Days
+                  <span className="chip-count">{count15Days}</span>
+                </button>
+
+                <button
+                  type="button"
+                  className={`chip-btn ${filterDueDate === "30" ? "active" : ""}`}
+                  onClick={() => setFilterDueDate("30")}
+                >
+                  Within 30 Days
+                  <span className="chip-count">{count30Days}</span>
+                </button>
+
+                <button
+                  type="button"
+                  className={`chip-btn ${filterDueDate === "expired" ? "active" : ""}`}
+                  onClick={() => setFilterDueDate("expired")}
+                >
+                  Overdue / Expired
+                  <span className="chip-count">{countExpired}</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="filters-tray-grid">
+              <div className="filter-item">
+                <label className="filter-item-label">Payment Status</label>
+                <select
+                  className="form-select"
+                  value={filterPayment}
+                  onChange={(e) => setFilterPayment(e.target.value)}
+                >
+                  <option value="All">All Payments</option>
+                  <option value="Due">Pending Dues Only ({policiesWithDue})</option>
+                  <option value="Partial">Partially Paid</option>
+                  <option value="Paid">Fully Paid</option>
+                </select>
+              </div>
+
+              <div className="filter-item">
+                <label className="filter-item-label">Expiry Status</label>
+                <select
+                  className="form-select"
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value)}
+                >
+                  <option value="All">All Expiry Status</option>
+                  <option value="Active">Active</option>
+                  <option value="Expiring Soon">Expiring Soon (&lt; 30d)</option>
+                  <option value="Expired">Expired</option>
+                </select>
+              </div>
+
+              {underwriters.length > 0 && (
+                <div className="filter-item">
+                  <label className="filter-item-label">Insurance Underwriter</label>
+                  <select
+                    className="form-select"
+                    value={filterUnderwriter}
+                    onChange={(e) => setFilterUnderwriter(e.target.value)}
+                  >
+                    <option value="All">All Underwriters ({underwriters.length})</option>
+                    {underwriters.map((u) => (
+                      <option key={u.id} value={u.name}>
+                        {u.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
+
+            {hasActiveFilters && (
+              <div className="filters-tray-footer">
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => {
+                    setFilterDueDate("All");
+                    setFilterPayment("All");
+                    setFilterStatus("All");
+                    setFilterUnderwriter("All");
+                  }}
+                  style={{ display: "flex", alignItems: "center", gap: "4px" }}
+                >
+                  <X size={12} />
+                  <span>Reset All Filters</span>
+                </button>
+              </div>
+            )}
+          </div>
         )}
       </div>
 

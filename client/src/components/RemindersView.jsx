@@ -16,7 +16,9 @@ import {
   Calendar,
   Search,
   Filter,
-  Check
+  Check,
+  ChevronDown,
+  ChevronUp
 } from "lucide-react";
 import { api } from "../services/api.js";
 
@@ -29,6 +31,7 @@ export default function RemindersView({ showToast }) {
   const [activeSubTab, setActiveSubTab] = useState("all"); // 'all' | 'insurance' | 'permit' | 'due' | 'logs'
   const [thresholdDays, setThresholdDays] = useState(7);
   const [searchQuery, setSearchQuery] = useState("");
+  const [showOverview, setShowOverview] = useState(false);
 
   // Message preview modal state
   const [previewItem, setPreviewItem] = useState(null);
@@ -229,55 +232,106 @@ export default function RemindersView({ showToast }) {
         )}
       </div>
 
-      {/* KPI Stats Cards */}
-      <div className="metric-grid">
-        <div className="metric-card">
-          <div className="metric-label">
-            TOTAL PENDING
+      {/* Collapsible KPI Stats Overview Bar */}
+      <div className="collapsible-stats-section">
+        <div
+          className={`compact-stats-bar ${showOverview ? "active" : ""}`}
+          onClick={() => setShowOverview(!showOverview)}
+          role="button"
+          tabIndex={0}
+        >
+          <div className="compact-stats-left">
+            <div className="compact-stat-pill">
+              <MessageSquare size={13} style={{ color: "var(--brand-primary)" }} />
+              <span>Pending:</span>
+              <strong>{candidates.length}</strong>
+            </div>
+
+            <div className={`compact-stat-pill ${criticalCount > 0 ? "danger" : ""}`}>
+              <AlertTriangle size={13} />
+              <span>Critical (≤3d):</span>
+              <strong>{criticalCount}</strong>
+            </div>
+
+            <div className="compact-stat-pill">
+              <Shield size={13} style={{ color: "#2563eb" }} />
+              <span>Insurance:</span>
+              <strong>{insuranceCount}</strong>
+            </div>
+
+            <div className="compact-stat-pill">
+              <DollarSign size={13} style={{ color: "#d97706" }} />
+              <span>Dues:</span>
+              <strong>{dueCount}</strong>
+            </div>
           </div>
-          <div className="metric-value">
-            {candidates.length}
-          </div>
-          <div className="metric-caption">
-            Next {thresholdDays} days
-          </div>
+
+          <button
+            type="button"
+            className="btn-toggle-stats"
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowOverview(!showOverview);
+            }}
+            title={showOverview ? "Hide detailed cards" : "Show detailed cards"}
+          >
+            <span>{showOverview ? "Hide Stats" : "Show Stats"}</span>
+            {showOverview ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+          </button>
         </div>
 
-        <div className="metric-card">
-          <div className="metric-label" style={{ color: "#dc2626" }}>
-            CRITICAL (≤ 3D)
-          </div>
-          <div className="metric-value" style={{ color: "#dc2626" }}>
-            {criticalCount}
-          </div>
-          <div className="metric-caption" style={{ color: "#dc2626" }}>
-            Needs immediate attention
-          </div>
-        </div>
+        {/* Detailed KPI Cards */}
+        {showOverview && (
+          <div className="metric-grid animated-dropdown">
+            <div className="metric-card">
+              <div className="metric-label">
+                TOTAL PENDING
+              </div>
+              <div className="metric-value">
+                {candidates.length}
+              </div>
+              <div className="metric-caption">
+                Next {thresholdDays} days
+              </div>
+            </div>
 
-        <div className="metric-card">
-          <div className="metric-label">
-            INSURANCE RENEWALS
-          </div>
-          <div className="metric-value" style={{ color: "#2563eb" }}>
-            {insuranceCount}
-          </div>
-          <div className="metric-caption">
-            Expiring policies
-          </div>
-        </div>
+            <div className="metric-card">
+              <div className="metric-label" style={{ color: "#dc2626" }}>
+                CRITICAL (≤ 3D)
+              </div>
+              <div className="metric-value" style={{ color: "#dc2626" }}>
+                {criticalCount}
+              </div>
+              <div className="metric-caption" style={{ color: "#dc2626" }}>
+                Needs immediate attention
+              </div>
+            </div>
 
-        <div className="metric-card">
-          <div className="metric-label">
-            PAYMENT DUES
+            <div className="metric-card">
+              <div className="metric-label">
+                INSURANCE RENEWALS
+              </div>
+              <div className="metric-value" style={{ color: "#2563eb" }}>
+                {insuranceCount}
+              </div>
+              <div className="metric-caption">
+                Expiring policies
+              </div>
+            </div>
+
+            <div className="metric-card">
+              <div className="metric-label">
+                PAYMENT DUES
+              </div>
+              <div className="metric-value" style={{ color: "#d97706" }}>
+                {dueCount}
+              </div>
+              <div className="metric-caption">
+                Customers with balance
+              </div>
+            </div>
           </div>
-          <div className="metric-value" style={{ color: "#d97706" }}>
-            {dueCount}
-          </div>
-          <div className="metric-caption">
-            Customers with balance
-          </div>
-        </div>
+        )}
       </div>
 
       {/* Tabs and Controls */}

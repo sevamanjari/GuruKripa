@@ -17,7 +17,9 @@ import {
   ChevronDown,
   ChevronUp,
   ExternalLink,
-  MessageSquare
+  MessageSquare,
+  SlidersHorizontal,
+  X
 } from "lucide-react";
 
 export default function CustomersView({
@@ -31,6 +33,8 @@ export default function CustomersView({
   const [searchTerm, setSearchTerm] = useState("");
   const [filterPayment, setFilterPayment] = useState("All");
   const [filterService, setFilterService] = useState("All");
+  const [showOverview, setShowOverview] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
   const [expandedCustomerId, setExpandedCustomerId] = useState(null);
 
   // Financial aggregates across all customers
@@ -45,6 +49,11 @@ export default function CustomersView({
   const toggleExpand = (id) => {
     setExpandedCustomerId(expandedCustomerId === id ? null : id);
   };
+
+  const activeFilters = [];
+  if (filterService !== "All") activeFilters.push({ key: "service", label: `Service: ${filterService}`, reset: () => setFilterService("All") });
+  if (filterPayment !== "All") activeFilters.push({ key: "payment", label: `Payment: ${filterPayment}`, reset: () => setFilterPayment("All") });
+  const hasActiveFilters = activeFilters.length > 0;
 
   const filteredCustomers = customers.filter((c) => {
     const q = searchTerm.toLowerCase();
@@ -94,12 +103,12 @@ export default function CustomersView({
 
   return (
     <div>
-      {/* Uniform Workspace Header */}
-      <div className="view-header">
-        <div>
-          <h1 className="view-title">Customer Directory & Linked Services</h1>
+      {/* Compact Workspace Header */}
+      <div className="view-header compact-view-header">
+        <div className="view-header-main">
+          <h1 className="view-title">Customer Directory</h1>
           <p className="view-subtitle">
-            Customer mobile number is the primary key linking all vehicle insurances, commercial permits, and outstanding payment accounts.
+            Customer phone links all vehicle insurances, commercial permits, and payment balances.
           </p>
         </div>
 
@@ -111,113 +120,245 @@ export default function CustomersView({
         </div>
       </div>
 
-      {/* Financial Overview Cards */}
-      <div className="metric-grid">
-        <div className="metric-card" style={{ padding: "14px 16px" }}>
-          <div className="metric-top" style={{ marginBottom: "6px" }}>
-            <span className="metric-label">Total Registered Customers</span>
-            <div className="metric-icon-wrap">
-              <Users size={14} />
-            </div>
-          </div>
-          <div className="metric-value" style={{ fontSize: "1.4rem" }}>
-            {totalCustomers}
-          </div>
-          <div className="metric-caption">
-            {customersWithDue > 0 ? `${customersWithDue} accounts with pending dues` : "All accounts clear"}
-          </div>
-        </div>
-
-        <div className="metric-card" style={{ padding: "14px 16px" }}>
-          <div className="metric-top" style={{ marginBottom: "6px" }}>
-            <span className="metric-label">Total Services Billed</span>
-            <div className="metric-icon-wrap">
-              <IndianRupee size={14} />
-            </div>
-          </div>
-          <div className="metric-value" style={{ fontSize: "1.4rem" }}>
-            ₹{totalBilled.toLocaleString("en-IN")}
-          </div>
-          <div className="metric-caption">Combined charges (Direct + Policies + Permits)</div>
-        </div>
-
-        <div className="metric-card" style={{ padding: "14px 16px" }}>
-          <div className="metric-top" style={{ marginBottom: "6px" }}>
-            <span className="metric-label">Total Payments Received</span>
-            <div className="metric-icon-wrap" style={{ color: "var(--color-success, #16a34a)" }}>
-              <CheckCircle2 size={14} />
-            </div>
-          </div>
-          <div className="metric-value" style={{ fontSize: "1.4rem", color: "var(--color-success, #16a34a)" }}>
-            ₹{totalCollected.toLocaleString("en-IN")}
-          </div>
-          <div className="metric-caption">Total client collections across all services</div>
-        </div>
-
+      {/* On-Demand Collapsible Overview Stats */}
+      <div className="collapsible-stats-section">
         <div
-          className="metric-card"
-          style={{
-            padding: "14px 16px",
-            borderLeft: totalDue > 0 ? "3px solid var(--color-danger, #dc2626)" : "1px solid var(--border-default)"
-          }}
+          className={`compact-stats-bar ${showOverview ? "active" : ""}`}
+          onClick={() => setShowOverview(!showOverview)}
+          role="button"
+          tabIndex={0}
         >
-          <div className="metric-top" style={{ marginBottom: "6px" }}>
-            <span className="metric-label">Combined Outstanding Dues</span>
-            <div className="metric-icon-wrap" style={{ color: totalDue > 0 ? "var(--color-danger, #dc2626)" : "var(--color-success, #16a34a)" }}>
-              <AlertCircle size={14} />
+          <div className="compact-stats-left">
+            <div className="compact-stat-pill">
+              <Users size={13} style={{ color: "var(--brand-primary)" }} />
+              <span>Customers:</span>
+              <strong>{totalCustomers}</strong>
+            </div>
+
+            <div className="compact-stat-pill">
+              <IndianRupee size={13} style={{ color: "var(--text-muted)" }} />
+              <span>Billed:</span>
+              <strong>₹{totalBilled.toLocaleString("en-IN")}</strong>
+            </div>
+
+            <div className="compact-stat-pill success">
+              <CheckCircle2 size={13} />
+              <span>Paid:</span>
+              <strong>₹{totalCollected.toLocaleString("en-IN")}</strong>
+            </div>
+
+            <div className={`compact-stat-pill ${totalDue > 0 ? "danger" : ""}`}>
+              <AlertCircle size={13} />
+              <span>Due:</span>
+              <strong>₹{totalDue.toLocaleString("en-IN")}</strong>
             </div>
           </div>
-          <div
-            className="metric-value"
-            style={{
-              fontSize: "1.4rem",
-              color: totalDue > 0 ? "var(--color-danger, #dc2626)" : "var(--color-success, #16a34a)"
+
+          <button
+            type="button"
+            className="btn-toggle-stats"
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowOverview(!showOverview);
             }}
+            title={showOverview ? "Hide detailed cards" : "Show detailed cards"}
           >
-            ₹{totalDue.toLocaleString("en-IN")}
-          </div>
-          <div className="metric-caption">
-            {customersWithDue} customer{customersWithDue === 1 ? "" : "s"} with unpaid balance
-          </div>
+            <span>{showOverview ? "Hide Stats" : "Show Stats"}</span>
+            {showOverview ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+          </button>
         </div>
+
+        {/* Detailed 4 Metric Cards (shown only when opened) */}
+        {showOverview && (
+          <div className="metric-grid animated-dropdown">
+            <div className="metric-card" style={{ padding: "14px 16px" }}>
+              <div className="metric-top" style={{ marginBottom: "6px" }}>
+                <span className="metric-label">Total Registered Customers</span>
+                <div className="metric-icon-wrap">
+                  <Users size={14} />
+                </div>
+              </div>
+              <div className="metric-value" style={{ fontSize: "1.4rem" }}>
+                {totalCustomers}
+              </div>
+              <div className="metric-caption">
+                {customersWithDue > 0 ? `${customersWithDue} accounts with pending dues` : "All accounts clear"}
+              </div>
+            </div>
+
+            <div className="metric-card" style={{ padding: "14px 16px" }}>
+              <div className="metric-top" style={{ marginBottom: "6px" }}>
+                <span className="metric-label">Total Services Billed</span>
+                <div className="metric-icon-wrap">
+                  <IndianRupee size={14} />
+                </div>
+              </div>
+              <div className="metric-value" style={{ fontSize: "1.4rem" }}>
+                ₹{totalBilled.toLocaleString("en-IN")}
+              </div>
+              <div className="metric-caption">Combined charges (Direct + Policies + Permits)</div>
+            </div>
+
+            <div className="metric-card" style={{ padding: "14px 16px" }}>
+              <div className="metric-top" style={{ marginBottom: "6px" }}>
+                <span className="metric-label">Total Payments Received</span>
+                <div className="metric-icon-wrap" style={{ color: "var(--color-success, #16a34a)" }}>
+                  <CheckCircle2 size={14} />
+                </div>
+              </div>
+              <div className="metric-value" style={{ fontSize: "1.4rem", color: "var(--color-success, #16a34a)" }}>
+                ₹{totalCollected.toLocaleString("en-IN")}
+              </div>
+              <div className="metric-caption">Total client collections across all services</div>
+            </div>
+
+            <div
+              className="metric-card"
+              style={{
+                padding: "14px 16px",
+                borderLeft: totalDue > 0 ? "3px solid var(--color-danger, #dc2626)" : "1px solid var(--border-default)"
+              }}
+            >
+              <div className="metric-top" style={{ marginBottom: "6px" }}>
+                <span className="metric-label">Combined Outstanding Dues</span>
+                <div className="metric-icon-wrap" style={{ color: totalDue > 0 ? "var(--color-danger, #dc2626)" : "var(--color-success, #16a34a)" }}>
+                  <AlertCircle size={14} />
+                </div>
+              </div>
+              <div
+                className="metric-value"
+                style={{
+                  fontSize: "1.4rem",
+                  color: totalDue > 0 ? "var(--color-danger, #dc2626)" : "var(--color-success, #16a34a)"
+                }}
+              >
+                ₹{totalDue.toLocaleString("en-IN")}
+              </div>
+              <div className="metric-caption">
+                {customersWithDue} customer{customersWithDue === 1 ? "" : "s"} with unpaid balance
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Uniform Search and Filter Toolbar */}
-      <div className="filter-toolbar">
-        <div className="search-wrap">
-          <Search size={15} className="search-icon" />
-          <input
-            type="text"
-            className="form-input"
-            placeholder="Search by customer phone, name, vehicle reg, policy no, notes..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+      {/* Clean Compact Search & Dropdown Filter Control */}
+      <div className="filter-controls-container">
+        <div className="search-filter-row">
+          <div className="search-wrap">
+            <Search size={15} className="search-icon" />
+            <input
+              type="text"
+              className="form-input"
+              placeholder="Search by customer phone, name, vehicle reg, policy no, notes..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+            {searchTerm && (
+              <button
+                type="button"
+                className="search-clear-btn"
+                onClick={() => setSearchTerm("")}
+                title="Clear search query"
+              >
+                <X size={13} />
+              </button>
+            )}
+          </div>
+
+          <button
+            type="button"
+            className={`filter-toggle-btn ${showFilters || hasActiveFilters ? "active" : ""}`}
+            onClick={() => setShowFilters(!showFilters)}
+            title="Filter by services or payment status"
+          >
+            <SlidersHorizontal size={14} />
+            <span>Filters</span>
+            {hasActiveFilters && (
+              <span className="filter-active-badge">
+                {activeFilters.length}
+              </span>
+            )}
+            {showFilters ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+          </button>
         </div>
 
-        <select
-          className="form-select"
-          style={{ width: "auto", minWidth: "170px" }}
-          value={filterService}
-          onChange={(e) => setFilterService(e.target.value)}
-        >
-          <option value="All">All Opted Services</option>
-          <option value="Insurance">Has Insurance Policies</option>
-          <option value="Permit">Has Transport Permits</option>
-          <option value="Multiple">Opted for Multiple Services</option>
-        </select>
+        {/* Active Filter Tags shown when tray is collapsed */}
+        {hasActiveFilters && !showFilters && (
+          <div className="active-filters-chips">
+            <span className="active-filters-label">Active:</span>
+            {activeFilters.map((af) => (
+              <span key={af.key} className="filter-tag">
+                {af.label}
+                <button type="button" onClick={af.reset} title="Remove filter">
+                  <X size={11} />
+                </button>
+              </span>
+            ))}
+            <button
+              type="button"
+              className="clear-all-filters-btn"
+              onClick={() => {
+                setFilterService("All");
+                setFilterPayment("All");
+              }}
+            >
+              Reset
+            </button>
+          </div>
+        )}
 
-        <select
-          className="form-select"
-          style={{ width: "auto", minWidth: "170px" }}
-          value={filterPayment}
-          onChange={(e) => setFilterPayment(e.target.value)}
-        >
-          <option value="All">All Payment Accounts</option>
-          <option value="Due">Pending Dues Only ({customersWithDue})</option>
-          <option value="Partial">Partially Paid</option>
-          <option value="Paid">Fully Paid</option>
-        </select>
+        {/* Dropdown Filters Tray */}
+        {showFilters && (
+          <div className="filters-dropdown-tray animated-dropdown">
+            <div className="filters-tray-grid">
+              <div className="filter-item">
+                <label className="filter-item-label">Opted Services</label>
+                <select
+                  className="form-select"
+                  value={filterService}
+                  onChange={(e) => setFilterService(e.target.value)}
+                >
+                  <option value="All">All Opted Services</option>
+                  <option value="Insurance">Has Insurance Policies</option>
+                  <option value="Permit">Has Transport Permits</option>
+                  <option value="Multiple">Opted for Multiple Services</option>
+                </select>
+              </div>
+
+              <div className="filter-item">
+                <label className="filter-item-label">Payment Status</label>
+                <select
+                  className="form-select"
+                  value={filterPayment}
+                  onChange={(e) => setFilterPayment(e.target.value)}
+                >
+                  <option value="All">All Payment Accounts</option>
+                  <option value="Due">Pending Dues Only ({customersWithDue})</option>
+                  <option value="Partial">Partially Paid</option>
+                  <option value="Paid">Fully Paid</option>
+                </select>
+              </div>
+            </div>
+
+            {hasActiveFilters && (
+              <div className="filters-tray-footer">
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => {
+                    setFilterService("All");
+                    setFilterPayment("All");
+                  }}
+                  style={{ display: "flex", alignItems: "center", gap: "4px" }}
+                >
+                  <X size={12} />
+                  <span>Reset All Filters</span>
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Uniform Table Card */}
