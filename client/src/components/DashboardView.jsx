@@ -196,7 +196,7 @@ export default function DashboardView({
           </p>
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+        <div className="view-header-actions">
           {/* Executive Insights Report Button */}
           <button
             className="btn btn-secondary btn-sm"
@@ -299,7 +299,7 @@ export default function DashboardView({
       </div>
 
       {/* VISUAL GRAPHS & INSIGHTS ANALYTICS SECTION */}
-      <div style={{ display: "grid", gridTemplateColumns: "1.25fr 1fr", gap: "16px" }}>
+      <div className="dashboard-charts-grid">
         {/* Graph 1: Revenue & Realization Grouped Bar Chart + Top Debtors */}
         <div
           style={{
@@ -397,7 +397,7 @@ export default function DashboardView({
       </div>
 
       {/* 3 Department Breakdown Cards */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "16px" }}>
+      <div className="department-breakdown-grid">
         {/* Customer Accounts Stream */}
         <div
           style={{
