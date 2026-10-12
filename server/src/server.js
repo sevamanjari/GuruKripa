@@ -15,24 +15,43 @@ const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:5173";
 
 // Allowed origins for CORS (blocks cross-site script request from unauthorized third-party domains)
 const allowedOrigins = [
-  CLIENT_URL,
   "http://localhost:5173",
   "http://127.0.0.1:5173"
 ];
 
+if (CLIENT_URL && CLIENT_URL !== "*") {
+  CLIENT_URL.split(",").forEach((u) => {
+    const trimmed = u.trim().replace(/\/$/, "");
+    if (trimmed && !allowedOrigins.includes(trimmed)) {
+      allowedOrigins.push(trimmed);
+    }
+  });
+}
+
 // Security Headers Middleware (Clickjacking, MIME Sniffing, XSS protection)
 app.use(securityHeaders);
 
-// Strict CORS Middleware
+// CORS Middleware
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow requests with no origin (like mobile apps, curl, server-to-server) or approved origins
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error(`Blocked by CORS policy: Origin ${origin} is not authorized`));
+      // Allow requests with no origin (like mobile apps, curl, server-to-server)
+      if (!origin) return callback(null, true);
+
+      const cleanOrigin = origin.replace(/\/$/, "");
+
+      // Allow wildcard, registered origins, and all onrender / vercel deployment subdomains
+      if (
+        CLIENT_URL === "*" ||
+        allowedOrigins.includes(cleanOrigin) ||
+        cleanOrigin.endsWith(".onrender.com") ||
+        cleanOrigin.endsWith(".vercel.app")
+      ) {
+        return callback(null, true);
       }
+
+      console.warn(`Blocked by CORS: ${cleanOrigin}`);
+      callback(new Error(`Blocked by CORS policy: Origin ${cleanOrigin} is not authorized`));
     },
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],

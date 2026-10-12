@@ -1,4 +1,19 @@
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+const getApiBase = () => {
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL.replace(/\/$/, "");
+  }
+  // Automatically connect to the deployed Render backend when running in production
+  if (
+    typeof window !== "undefined" &&
+    window.location.hostname !== "localhost" &&
+    window.location.hostname !== "127.0.0.1"
+  ) {
+    return "https://gurukripa.onrender.com/api";
+  }
+  return "http://localhost:5000/api";
+};
+
+const API_BASE = getApiBase();
 const TOKEN_KEY = "gurukripa_auth_token";
 const USER_KEY = "gurukripa_auth_user";
 
