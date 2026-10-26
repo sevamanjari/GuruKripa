@@ -102,34 +102,53 @@ export default function InsuranceView({
 
   return (
     <div className="view-container">
-      {/* Header Bar */}
-      <div className="view-header">
-        <div>
-          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            <h1 className="view-title">Vehicle Insurance Policies</h1>
-            <span
-              style={{
-                fontSize: "0.78rem",
-                fontWeight: 700,
-                padding: "3px 10px",
-                borderRadius: "20px",
-                background: "rgba(30, 58, 138, 0.1)",
-                color: "var(--brand-primary, #1e3a8a)"
-              }}
-            >
-              {insurances.length} Policies
-            </span>
+      {/* Modern View Header Bar */}
+      <div className="view-header" style={{ borderLeft: "4px solid #2563eb" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+          <div
+            style={{
+              width: "48px",
+              height: "48px",
+              borderRadius: "12px",
+              background: "linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "#ffffff",
+              boxShadow: "0 4px 12px rgba(37, 99, 235, 0.25)"
+            }}
+          >
+            <Shield size={24} />
           </div>
-          <p className="view-subtitle">
-            Simplified insurance tracking, underwriter management & policy PDF uploads
-          </p>
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <h1 className="view-title">Vehicle Insurance Policies</h1>
+              <span
+                style={{
+                  fontSize: "0.75rem",
+                  fontWeight: 700,
+                  padding: "3px 10px",
+                  borderRadius: "20px",
+                  background: "rgba(37, 99, 235, 0.1)",
+                  color: "#2563eb",
+                  border: "1px solid rgba(37, 99, 235, 0.2)"
+                }}
+              >
+                {insurances.length} Active Policies
+              </span>
+            </div>
+            <p className="view-subtitle">
+              Commercial & private motor insurance renewals, underwriter tracking, and policy document uploads
+            </p>
+          </div>
         </div>
-        <div style={{ display: "flex", gap: "8px" }}>
+
+        <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
           {onOpenManageUnderwriters && (
             <button
               className="btn btn-secondary"
               onClick={onOpenManageUnderwriters}
-              style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
+              style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "10px 16px" }}
             >
               <Building2 size={15} />
               <span>Underwriters</span>
@@ -138,7 +157,13 @@ export default function InsuranceView({
           <button
             className="btn btn-primary"
             onClick={onAddInsurance}
-            style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}
+            style={{
+              background: "linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)",
+              border: "none",
+              boxShadow: "0 4px 12px rgba(37, 99, 235, 0.3)",
+              padding: "10px 18px",
+              fontSize: "0.86rem"
+            }}
           >
             <Plus size={16} />
             <span>New Insurance Policy</span>
@@ -146,37 +171,42 @@ export default function InsuranceView({
         </div>
       </div>
 
-      {/* KPI Stats Cards */}
-      <div className="stats-grid" style={{ marginBottom: "20px" }}>
-        <div className="stat-card">
-          <div className="stat-icon-wrap" style={{ background: "rgba(30, 58, 138, 0.1)", color: "#1e3a8a" }}>
-            <Shield size={22} />
+      {/* Modern KPI Stats Cards */}
+      <div className="stats-grid">
+        {/* Card 1: Insured Vehicles */}
+        <div className="stat-card" style={{ borderLeft: "4px solid #2563eb" }}>
+          <div className="stat-icon-wrap" style={{ background: "rgba(37, 99, 235, 0.12)", color: "#2563eb" }}>
+            <Shield size={24} />
           </div>
           <div className="stat-info">
             <span className="stat-label">Total Insured Vehicles</span>
             <span className="stat-value">{insurances.length}</span>
-            <span className="stat-subtext">Active Fleet</span>
+            <span className="stat-subtext">Active policy coverage</span>
           </div>
         </div>
 
-        <div className="stat-card">
-          <div className="stat-icon-wrap" style={{ background: "rgba(22, 163, 74, 0.12)", color: "#16a34a" }}>
-            <CheckCircle2 size={22} />
+        {/* Card 2: Collected Premium */}
+        <div className="stat-card" style={{ borderLeft: "4px solid #10b981" }}>
+          <div className="stat-icon-wrap" style={{ background: "rgba(16, 185, 129, 0.12)", color: "#10b981" }}>
+            <CheckCircle2 size={24} />
           </div>
           <div className="stat-info">
             <span className="stat-label">Collected Premium</span>
-            <span className="stat-value">₹{totalCollected.toLocaleString("en-IN")}</span>
+            <span className="stat-value" style={{ color: "#059669" }}>
+              ₹{totalCollected.toLocaleString("en-IN")}
+            </span>
             <span className="stat-subtext">Total Premium: ₹{totalBilled.toLocaleString("en-IN")}</span>
           </div>
         </div>
 
-        <div className="stat-card">
-          <div className="stat-icon-wrap" style={{ background: "rgba(220, 38, 38, 0.12)", color: "#dc2626" }}>
-            <AlertCircle size={22} />
+        {/* Card 3: Due Amount */}
+        <div className="stat-card" style={{ borderLeft: totalDue > 0 ? "4px solid #f43f5e" : "4px solid #cbd5e1" }}>
+          <div className="stat-icon-wrap" style={{ background: totalDue > 0 ? "rgba(244, 63, 94, 0.12)" : "rgba(100, 116, 139, 0.12)", color: totalDue > 0 ? "#f43f5e" : "#64748b" }}>
+            <AlertCircle size={24} />
           </div>
           <div className="stat-info">
-            <span className="stat-label">Pending Balance</span>
-            <span className="stat-value" style={{ color: totalDue > 0 ? "#dc2626" : "inherit" }}>
+            <span className="stat-label">Pending Balance Due</span>
+            <span className="stat-value" style={{ color: totalDue > 0 ? "#e11d48" : "inherit" }}>
               ₹{totalDue.toLocaleString("en-IN")}
             </span>
             <span className="stat-subtext">
@@ -185,17 +215,18 @@ export default function InsuranceView({
           </div>
         </div>
 
-        <div className="stat-card">
-          <div className="stat-icon-wrap" style={{ background: "rgba(234, 88, 12, 0.12)", color: "#ea580c" }}>
-            <Clock size={22} />
+        {/* Card 4: Expiries */}
+        <div className="stat-card" style={{ borderLeft: expiredCount > 0 ? "4px solid #f43f5e" : expiringCount > 0 ? "4px solid #f59e0b" : "4px solid #10b981" }}>
+          <div className="stat-icon-wrap" style={{ background: expiredCount > 0 ? "rgba(244, 63, 94, 0.12)" : "rgba(245, 158, 11, 0.12)", color: expiredCount > 0 ? "#f43f5e" : "#d97706" }}>
+            <Clock size={24} />
           </div>
           <div className="stat-info">
             <span className="stat-label">Expiring / Expired</span>
-            <span className="stat-value" style={{ color: expiredCount > 0 ? "#dc2626" : "#ea580c" }}>
+            <span className="stat-value" style={{ color: expiredCount > 0 ? "#e11d48" : expiringCount > 0 ? "#d97706" : "#059669" }}>
               {expiringCount + expiredCount}
             </span>
             <span className="stat-subtext">
-              {expiredCount > 0 ? `${expiredCount} expired, ` : ""}{expiringCount} within 30 days
+              {expiredCount > 0 ? `${expiredCount} expired • ` : ""}{expiringCount} within 30 days
             </span>
           </div>
         </div>

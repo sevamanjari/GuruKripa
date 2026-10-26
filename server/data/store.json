@@ -12,7 +12,7 @@
       "paymentStatus": "No Charges",
       "phone": "9399140893",
       "totalAmount": 0,
-      "updatedAt": "2026-10-26T05:13:05.887Z"
+      "updatedAt": "2026-10-26T05:26:25.716Z"
     },
     {
       "id": "CUST-3087",
@@ -26,7 +26,7 @@
       "paymentStatus": "No Charges",
       "phone": "9630772777",
       "totalAmount": 0,
-      "updatedAt": "2026-10-26T05:13:05.887Z"
+      "updatedAt": "2026-10-26T05:26:25.716Z"
     },
     {
       "id": "CUST-6103",
@@ -40,7 +40,7 @@
       "paymentStatus": "No Charges",
       "phone": "9826011111",
       "totalAmount": 0,
-      "updatedAt": "2026-10-26T05:13:05.887Z"
+      "updatedAt": "2026-10-26T05:26:25.716Z"
     },
     {
       "id": "CUST-0282",
@@ -54,7 +54,7 @@
       "paymentStatus": "No Charges",
       "phone": "9826022222",
       "totalAmount": 0,
-      "updatedAt": "2026-10-26T05:13:05.887Z"
+      "updatedAt": "2026-10-26T05:26:25.716Z"
     },
     {
       "id": "CUST-7112",
@@ -68,7 +68,7 @@
       "paymentStatus": "No Charges",
       "phone": "9826099999",
       "totalAmount": 0,
-      "updatedAt": "2026-10-26T05:13:05.887Z"
+      "updatedAt": "2026-10-26T05:26:25.716Z"
     },
     {
       "id": "CUST-5596",
@@ -82,7 +82,21 @@
       "paymentStatus": "No Charges",
       "phone": "9826099999",
       "totalAmount": 0,
-      "updatedAt": "2026-10-26T05:13:05.819Z"
+      "updatedAt": "2026-10-26T05:26:25.716Z"
+    },
+    {
+      "id": "CUST-4553",
+      "address": "",
+      "createdAt": "2026-10-26T05:26:24.627Z",
+      "dueAmount": 0,
+      "email": "",
+      "name": "Security Test User",
+      "notes": "Test sanitized note",
+      "paidAmount": 0,
+      "paymentStatus": "No Charges",
+      "phone": "9826099999",
+      "totalAmount": 0,
+      "updatedAt": "2026-10-26T05:26:25.716Z"
     }
   ],
   "vehicles": [],
@@ -108,7 +122,7 @@
       "renewalHistory": [],
       "status": "Expiring Soon",
       "totalAmount": 0,
-      "updatedAt": "2026-10-26T05:13:05.885Z",
+      "updatedAt": "2026-10-26T05:26:24.705Z",
       "vehicleId": "MP 09 BH 1234",
       "vehicleReg": "MP 09 BH 1234"
     },
@@ -136,7 +150,7 @@
       "renewalHistory": [],
       "status": "Expiring Soon",
       "totalAmount": 32000,
-      "updatedAt": "2026-10-26T05:13:05.885Z",
+      "updatedAt": "2026-10-26T05:26:24.705Z",
       "uploadedAt": "",
       "vehicleId": "MP 09 SC 1001",
       "vehicleReg": "MP 09 SC 1001"
@@ -186,7 +200,57 @@
       ],
       "status": "Active",
       "totalAmount": 30000,
-      "updatedAt": "2026-10-26T05:13:05.807Z",
+      "updatedAt": "2026-10-26T05:26:24.705Z",
+      "uploadedAt": "",
+      "vehicleId": "MP 09 SC 1001",
+      "vehicleReg": "MP 09 SC 1001"
+    },
+    {
+      "id": "INS-4558",
+      "coverageType": "Comprehensive",
+      "createdAt": "2026-10-26T05:26:24.630Z",
+      "customerId": "CUST-4553",
+      "customerName": "Security Test User",
+      "customerPhone": "9826099999",
+      "documentName": "",
+      "documentSize": 0,
+      "documentUrl": "",
+      "dueAmount": 0,
+      "expiryDate": "2027-11-15",
+      "idvAmount": 1800000,
+      "insuranceCompany": "Tata AIG General Insurance",
+      "issueDate": "2026-11-15",
+      "ncbPercentage": 25,
+      "notes": "Renewed on 2026-10-26. Previous policy: POL-SEC-2026-001",
+      "paidAmount": 30000,
+      "paymentStatus": "Paid",
+      "policyNumber": "POL-SEC-2026-001-RNW2",
+      "premiumAmount": 30000,
+      "renewalHistory": [
+        {
+          "id": "HIST-1792992384565-e068",
+          "policyNumber": "POL-SEC-2026-001",
+          "insuranceCompany": "Tata AIG General Insurance",
+          "underwriter": "Tata AIG General Insurance",
+          "coverageType": "Comprehensive",
+          "issueDate": "2026-10-26",
+          "expiryDate": "2026-11-15",
+          "premiumAmount": 32000,
+          "totalAmount": 32000,
+          "paidAmount": 0,
+          "dueAmount": 32000,
+          "paymentStatus": "Due",
+          "documentUrl": "",
+          "documentName": "",
+          "idvAmount": 2000000,
+          "ncbPercentage": 20,
+          "renewedOn": "2026-10-26",
+          "notes": ""
+        }
+      ],
+      "status": "Active",
+      "totalAmount": 30000,
+      "updatedAt": "2026-10-26T05:26:24.700Z",
       "uploadedAt": "",
       "vehicleId": "MP 09 SC 1001",
       "vehicleReg": "MP 09 SC 1001"
@@ -213,7 +277,7 @@
       "state": "Madhya Pradesh",
       "status": "Active",
       "totalAmount": 0,
-      "updatedAt": "2026-10-26T05:13:06.158Z",
+      "updatedAt": "2026-10-26T05:26:24.777Z",
       "vehicleId": "MP 11 H 1320",
       "vehicleReg": "MP 11 H 1320"
     }
@@ -227,7 +291,7 @@
       "name": "Probus",
       "notes": "",
       "phone": "",
-      "updatedAt": "2026-10-26T05:13:05.948Z"
+      "updatedAt": "2026-10-26T05:26:25.801Z"
     },
     {
       "id": "UND-1308-mwub",
@@ -237,7 +301,7 @@
       "name": "IFFCO Tokyo",
       "notes": "",
       "phone": "",
-      "updatedAt": "2026-10-26T05:13:05.948Z"
+      "updatedAt": "2026-10-26T05:26:25.801Z"
     },
     {
       "id": "UND-3178-i8xr",
@@ -247,7 +311,7 @@
       "name": "ICICI Lombard",
       "notes": "",
       "phone": "",
-      "updatedAt": "2026-10-26T05:13:05.948Z"
+      "updatedAt": "2026-10-26T05:26:25.801Z"
     },
     {
       "id": "UND-3100-bz7q",
@@ -257,11 +321,11 @@
       "name": "Ritesh",
       "notes": "",
       "phone": "",
-      "updatedAt": "2026-10-26T05:13:05.948Z"
+      "updatedAt": "2026-10-26T05:26:25.801Z"
     }
   ],
   "rtoServices": [],
-  "lastUpdated": "2026-10-26T05:26:24.574Z",
+  "lastUpdated": "2026-10-26T05:40:59.074Z",
   "fitness": [
     {
       "id": "FIT-6103",
@@ -297,7 +361,7 @@
       "rtoAffiliated": "RTO Indore (MP-09)",
       "status": "Active",
       "totalAmount": 1800,
-      "updatedAt": "2026-10-26T05:13:07.072Z",
+      "updatedAt": "2026-10-26T05:26:24.707Z",
       "uploadedAt": "",
       "vehicleReg": "MP09AB1234"
     },
@@ -335,7 +399,7 @@
       "rtoAffiliated": "RTO Indore (MP-09)",
       "status": "Active",
       "totalAmount": 1800,
-      "updatedAt": "2026-10-26T05:13:07.072Z",
+      "updatedAt": "2026-10-26T05:26:24.707Z",
       "uploadedAt": "",
       "vehicleReg": "MP09AB1234"
     }
@@ -361,7 +425,7 @@
       "rtoAffiliated": "RTO Bhopal (MP-04)",
       "status": "Active",
       "totalAmount": 2500,
-      "updatedAt": "2026-10-26T05:13:05.939Z",
+      "updatedAt": "2026-10-26T05:26:24.780Z",
       "uploadedAt": ""
     }
   ]
