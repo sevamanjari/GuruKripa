@@ -15,6 +15,8 @@ import Vehicle from "../models/Vehicle.js";
 import Insurance from "../models/Insurance.js";
 import Permit from "../models/Permit.js";
 import Underwriter from "../models/Underwriter.js";
+import Fitness from "../models/Fitness.js";
+import DrivingLicence from "../models/DrivingLicence.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -26,6 +28,8 @@ const getDefaultData = () => ({
   vehicles: [...initialVehicles],
   insurances: [...initialInsurances],
   permits: [...initialPermits],
+  fitness: [],
+  drivingLicences: [],
   underwriters: [...initialUnderwriters],
   rtoServices: [...rtoServicesCatalog],
   lastUpdated: new Date().toISOString()
@@ -47,6 +51,8 @@ export const loadData = () => {
     const raw = fs.readFileSync(DATA_FILE, "utf-8");
     const parsed = JSON.parse(raw);
     if (!parsed.underwriters) parsed.underwriters = [];
+    if (!parsed.fitness) parsed.fitness = [];
+    if (!parsed.drivingLicences) parsed.drivingLicences = [];
     return parsed;
   } catch (error) {
     console.error("Error reading data file, using default seed:", error);
@@ -93,6 +99,8 @@ export const syncToMongo = async (data) => {
     if (data.vehicles) tasks.push(syncCollection(Vehicle, data.vehicles));
     if (data.insurances) tasks.push(syncCollection(Insurance, data.insurances));
     if (data.permits) tasks.push(syncCollection(Permit, data.permits));
+    if (data.fitness) tasks.push(syncCollection(Fitness, data.fitness));
+    if (data.drivingLicences) tasks.push(syncCollection(DrivingLicence, data.drivingLicences));
     if (data.underwriters) tasks.push(syncCollection(Underwriter, data.underwriters));
     await Promise.all(tasks);
   } catch (err) {
@@ -134,11 +142,13 @@ export const syncFromMongo = async () => {
   if (!isDbConnected()) return;
 
   try {
-    const [customers, vehicles, insurances, permits, underwriters] = await Promise.all([
+    const [customers, vehicles, insurances, permits, fitness, drivingLicences, underwriters] = await Promise.all([
       Customer.find().lean(),
       Vehicle.find().lean(),
       Insurance.find().lean(),
       Permit.find().lean(),
+      Fitness.find().lean(),
+      DrivingLicence.find().lean(),
       Underwriter.find().lean()
     ]);
 
@@ -147,6 +157,8 @@ export const syncFromMongo = async () => {
       vehicles.length +
       insurances.length +
       permits.length +
+      fitness.length +
+      drivingLicences.length +
       underwriters.length;
 
     const local = loadData();
@@ -155,6 +167,8 @@ export const syncFromMongo = async () => {
       (local.vehicles?.length || 0) +
       (local.insurances?.length || 0) +
       (local.permits?.length || 0) +
+      (local.fitness?.length || 0) +
+      (local.drivingLicences?.length || 0) +
       (local.underwriters?.length || 0);
 
     if (mongoTotal > 0) {
@@ -162,6 +176,8 @@ export const syncFromMongo = async () => {
       local.vehicles = vehicles.map(stripMongoId);
       local.insurances = insurances.map(stripMongoId);
       local.permits = permits.map(stripMongoId);
+      local.fitness = fitness.map(stripMongoId);
+      local.drivingLicences = drivingLicences.map(stripMongoId);
       local.underwriters = underwriters.map(stripMongoId);
       local.lastUpdated = new Date().toISOString();
       fs.writeFileSync(DATA_FILE, JSON.stringify(local, null, 2), "utf-8");

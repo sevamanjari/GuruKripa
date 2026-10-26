@@ -11,12 +11,16 @@ import RemindersView from "./components/RemindersView.jsx";
 import CustomerModal from "./components/Modals/CustomerModal.jsx";
 import InsuranceModal from "./components/Modals/InsuranceModal.jsx";
 import PermitModal from "./components/Modals/PermitModal.jsx";
+import FitnessModal from "./components/Modals/FitnessModal.jsx";
+import DrivingLicenceModal from "./components/Modals/DrivingLicenceModal.jsx";
 import RenewModal from "./components/Modals/RenewModal.jsx";
 import UnderwriterManageModal from "./components/Modals/UnderwriterManageModal.jsx";
+import FitnessView from "./components/FitnessView.jsx";
+import DrivingLicenceView from "./components/DrivingLicenceView.jsx";
 
 import { api, authStorage, startClientKeepAlive } from "./services/api.js";
 
-const VALID_TABS = ["dashboard", "customers", "insurance", "permits", "reminders"];
+const VALID_TABS = ["dashboard", "customers", "insurance", "permits", "fitness", "driving-licences", "reminders"];
 
 export default function App() {
   // Session & Authentication state
@@ -38,6 +42,8 @@ export default function App() {
   const [customers, setCustomers] = useState([]);
   const [insurances, setInsurances] = useState([]);
   const [permits, setPermits] = useState([]);
+  const [fitnessList, setFitnessList] = useState([]);
+  const [drivingLicences, setDrivingLicences] = useState([]);
   const [underwriters, setUnderwriters] = useState([]);
 
   // Modals
@@ -51,6 +57,12 @@ export default function App() {
 
   const [isPermitModalOpen, setIsPermitModalOpen] = useState(false);
   const [editingPermit, setEditingPermit] = useState(null);
+
+  const [isFitnessModalOpen, setIsFitnessModalOpen] = useState(false);
+  const [editingFitness, setEditingFitness] = useState(null);
+
+  const [isDrivingLicenceModalOpen, setIsDrivingLicenceModalOpen] = useState(false);
+  const [editingDrivingLicence, setEditingDrivingLicence] = useState(null);
 
   const [isRenewModalOpen, setIsRenewModalOpen] = useState(false);
   const [renewingItem, setRenewingItem] = useState(null);
@@ -69,9 +81,19 @@ export default function App() {
       const d = Math.ceil((new Date(p.expiryDate) - today) / (1000 * 60 * 60 * 24));
       return d <= 7 && d >= -15;
     }).length;
+    const expFitness = (Array.isArray(fitnessList) ? fitnessList : []).filter((f) => {
+      if (!f || !f.expiryDate) return false;
+      const d = Math.ceil((new Date(f.expiryDate) - today) / (1000 * 60 * 60 * 24));
+      return d <= 7 && d >= -15;
+    }).length;
+    const expDL = (Array.isArray(drivingLicences) ? drivingLicences : []).filter((dl) => {
+      if (!dl || !dl.expiryDate) return false;
+      const d = Math.ceil((new Date(dl.expiryDate) - today) / (1000 * 60 * 60 * 24));
+      return d <= 7 && d >= -15;
+    }).length;
     const dues = (Array.isArray(customers) ? customers : []).filter((c) => c && (c.dueAmount || 0) > 0).length;
-    return expInsurances + expPermits + dues;
-  }, [insurances, permits, customers]);
+    return expInsurances + expPermits + expFitness + expDL + dues;
+  }, [insurances, permits, fitnessList, drivingLicences, customers]);
 
   const showToast = (message, type = "success") => {
     setToast({ message, type });
@@ -130,11 +152,13 @@ export default function App() {
     if (!authStorage.getToken()) return;
 
     try {
-      const [dashRes, custRes, insRes, permRes, undRes] = await Promise.all([
+      const [dashRes, custRes, insRes, permRes, fitRes, dlRes, undRes] = await Promise.all([
         api.getDashboardStats(),
         api.getCustomers(),
         api.getInsurances(),
         api.getPermits(),
+        api.getFitness(),
+        api.getDrivingLicences(),
         api.getUnderwriters()
       ]);
 
@@ -142,6 +166,8 @@ export default function App() {
       setCustomers(custRes.data || []);
       setInsurances(insRes.data || []);
       setPermits(permRes.data || []);
+      setFitnessList(fitRes.data || []);
+      setDrivingLicences(dlRes.data || []);
       setUnderwriters(undRes.data || []);
     } catch (err) {
       console.error("Failed to load application data:", err.message);
@@ -198,6 +224,8 @@ export default function App() {
     setCustomers([]);
     setInsurances([]);
     setPermits([]);
+    setFitnessList([]);
+    setDrivingLicences([]);
     setUnderwriters([]);
     showToast("Signed out of session successfully.", "info");
   };
@@ -305,14 +333,94 @@ export default function App() {
     setIsRenewModalOpen(true);
   };
 
+  // Fitness CRUD & Renew
+  const handleSaveFitness = async (formData) => {
+    try {
+      if (editingFitness) {
+        await api.updateFitness(editingFitness.id, formData);
+        showToast("Fitness certificate updated successfully!");
+      } else {
+        await api.createFitness(formData);
+        showToast("Fitness certificate saved successfully!");
+      }
+      setIsFitnessModalOpen(false);
+      setEditingFitness(null);
+      await loadAllData();
+    } catch (err) {
+      showToast(`Error: ${err.message}`, "error");
+    }
+  };
+
+  const handleDeleteFitness = async (id, vNo) => {
+    if (!window.confirm(`Delete fitness record for '${vNo}'?`)) return;
+    try {
+      await api.deleteFitness(id);
+      showToast(`Fitness record for '${vNo}' deleted`, "info");
+      await loadAllData();
+    } catch (err) {
+      showToast(`Delete failed: ${err.message}`, "error");
+    }
+  };
+
+  const handleOpenRenewFitness = (id) => {
+    const item = fitnessList.find((f) => f.id === id);
+    if (!item) return;
+    setRenewingItem(item);
+    setRenewType("fitness");
+    setIsRenewModalOpen(true);
+  };
+
+  // Driving Licence CRUD & Renew
+  const handleSaveDL = async (formData) => {
+    try {
+      if (editingDrivingLicence) {
+        await api.updateDrivingLicence(editingDrivingLicence.id, formData);
+        showToast("Driving licence updated successfully!");
+      } else {
+        await api.createDrivingLicence(formData);
+        showToast("Driving licence recorded successfully!");
+      }
+      setIsDrivingLicenceModalOpen(false);
+      setEditingDrivingLicence(null);
+      await loadAllData();
+    } catch (err) {
+      showToast(`Error: ${err.message}`, "error");
+    }
+  };
+
+  const handleDeleteDL = async (id, custName) => {
+    if (!window.confirm(`Delete driving licence for '${custName}'?`)) return;
+    try {
+      await api.deleteDrivingLicence(id);
+      showToast(`Driving licence for '${custName}' deleted`, "info");
+      await loadAllData();
+    } catch (err) {
+      showToast(`Delete failed: ${err.message}`, "error");
+    }
+  };
+
+  const handleOpenRenewDL = (id) => {
+    const item = drivingLicences.find((d) => d.id === id);
+    if (!item) return;
+    setRenewingItem(item);
+    setRenewType("drivingLicence");
+    setIsRenewModalOpen(true);
+  };
+
   const handleConfirmRenewal = async (id, renewalData) => {
     try {
       if (renewType === "insurance") {
         await api.renewInsurance(id, renewalData);
         showToast(`Insurance renewed successfully! Previous term archived to history.`);
-      } else {
+      } else if (renewType === "permit") {
         await api.renewPermit(id, renewalData);
         showToast(`Permit renewed successfully! Previous term archived to history.`);
+      } else if (renewType === "fitness") {
+        await api.renewFitness(id, renewalData);
+        showToast(`Fitness certificate renewed successfully! Previous term archived.`);
+      } else {
+        await api.renewDrivingLicence(id, renewalData);
+        showToast(`Driving licence renewed successfully! Previous term archived.`);
       }
       setIsRenewModalOpen(false);
       setRenewingItem(null);
@@ -366,6 +474,8 @@ export default function App() {
           customers: customers.length,
           insurances: insurances.length,
           permits: permits.length,
+          fitness: fitnessList.length,
+          drivingLicences: drivingLicences.length,
           reminders: remindersCount
         }}
         currentUser={currentUser}
@@ -380,6 +490,8 @@ export default function App() {
             customers={customers}
             insurances={insurances}
             permits={permits}
+            fitnessList={fitnessList}
+            drivingLicences={drivingLicences}
             onNavigate={handleTabChange}
             onAddCustomer={() => {
               setEditingCustomer(null);
@@ -397,6 +509,14 @@ export default function App() {
             onAddPermit={() => {
               setEditingPermit(null);
               setIsPermitModalOpen(true);
+            }}
+            onAddFitness={() => {
+              setEditingFitness(null);
+              setIsFitnessModalOpen(true);
+            }}
+            onAddDL={() => {
+              setEditingDrivingLicence(null);
+              setIsDrivingLicenceModalOpen(true);
             }}
           />
         )}
@@ -452,6 +572,38 @@ export default function App() {
           />
         )}
 
+        {activeTab === "fitness" && (
+          <FitnessView
+            fitnessList={fitnessList}
+            onAddFitness={() => {
+              setEditingFitness(null);
+              setIsFitnessModalOpen(true);
+            }}
+            onEditFitness={(f) => {
+              setEditingFitness(f);
+              setIsFitnessModalOpen(true);
+            }}
+            onDeleteFitness={handleDeleteFitness}
+            onRenewFitness={handleOpenRenewFitness}
+          />
+        )}
+
+        {activeTab === "driving-licences" && (
+          <DrivingLicenceView
+            drivingLicences={drivingLicences}
+            onAddDL={() => {
+              setEditingDrivingLicence(null);
+              setIsDrivingLicenceModalOpen(true);
+            }}
+            onEditDL={(d) => {
+              setEditingDrivingLicence(d);
+              setIsDrivingLicenceModalOpen(true);
+            }}
+            onDeleteDL={handleDeleteDL}
+            onRenewDL={handleOpenRenewDL}
+          />
+        )}
+
         {activeTab === "reminders" && (
           <RemindersView showToast={showToast} />
         )}
@@ -472,7 +624,7 @@ export default function App() {
             <span style={{ fontWeight: 700, color: "var(--text-primary)" }}>GuruKripa Yatayat</span> • Transport & RTO Operations Management
           </div>
           <div>
-            Authenticated Session Active • Proactive DL, Vehicle Insurance, and Permit Tracking
+            Authenticated Session Active • Proactive DL, Fitness, Vehicle Insurance, and Permit Tracking
           </div>
         </div>
       </footer>
@@ -510,6 +662,22 @@ export default function App() {
         permit={editingPermit}
         customers={customers}
         vehicles={[]}
+      />
+
+      <FitnessModal
+        isOpen={isFitnessModalOpen}
+        onClose={() => setIsFitnessModalOpen(false)}
+        onSave={handleSaveFitness}
+        fitness={editingFitness}
+        customers={customers}
+      />
+
+      <DrivingLicenceModal
+        isOpen={isDrivingLicenceModalOpen}
+        onClose={() => setIsDrivingLicenceModalOpen(false)}
+        onSave={handleSaveDL}
+        dl={editingDrivingLicence}
+        customers={customers}
       />
 
       <RenewModal

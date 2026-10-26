@@ -7,6 +7,8 @@ export const getDashboardStats = (req, res) => {
     const vehicles = data.vehicles || [];
     const insurances = data.insurances || [];
     const permits = data.permits || [];
+    const fitnessList = data.fitness || [];
+    const dlList = data.drivingLicences || [];
 
     // Customer financial totals
     const custDue = customers.reduce((sum, c) => sum + (Number(c.dueAmount) || 0), 0);
@@ -22,14 +24,24 @@ export const getDashboardStats = (req, res) => {
     const insDue = insurances.reduce((sum, i) => sum + (Number(i.dueAmount) || 0), 0);
 
     // Permit financial totals
-    const permitBilled = permits.reduce((sum, p) => sum + (Number(p.totalAmount ?? p.feeAmount) || 0), 0);
+    const permitBilled = permits.reduce((sum, p) => sum + (Number(p.totalAmount ?? p.authFeePaid) || 0), 0);
     const permitPaid = permits.reduce((sum, p) => sum + (Number(p.paidAmount) || 0), 0);
     const permitDue = permits.reduce((sum, p) => sum + (Number(p.dueAmount) || 0), 0);
 
+    // Fitness financial totals
+    const fitnessBilled = fitnessList.reduce((sum, f) => sum + (Number(f.totalAmount) || 0), 0);
+    const fitnessPaid = fitnessList.reduce((sum, f) => sum + (Number(f.paidAmount) || 0), 0);
+    const fitnessDue = fitnessList.reduce((sum, f) => sum + (Number(f.dueAmount) || 0), 0);
+
+    // Driving Licence financial totals
+    const dlBilled = dlList.reduce((sum, d) => sum + (Number(d.totalAmount) || 0), 0);
+    const dlPaid = dlList.reduce((sum, d) => sum + (Number(d.paidAmount) || 0), 0);
+    const dlDue = dlList.reduce((sum, d) => sum + (Number(d.dueAmount) || 0), 0);
+
     // Combined grand monetary totals
-    const totalBilledAmount = custBilled + insBilled + permitBilled;
-    const totalPaidAmount = custPaid + insPaid + permitPaid;
-    const totalDueAmount = custDue + insDue + permitDue;
+    const totalBilledAmount = custBilled + insBilled + permitBilled + fitnessBilled + dlBilled;
+    const totalPaidAmount = custPaid + insPaid + permitPaid + fitnessPaid + dlPaid;
+    const totalDueAmount = custDue + insDue + permitDue + fitnessDue + dlDue;
 
     // Expiry alerts (items expiring in 30 days or already expired)
     const now = new Date();
@@ -54,8 +66,9 @@ export const getDashboardStats = (req, res) => {
 
     const criticalPermits = permits
       .filter((p) => {
-        if (!p.validUpto) return false;
-        const diff = Math.ceil((new Date(p.validUpto) - now) / (1000 * 60 * 60 * 24));
+        const exp = p.expiryDate || p.validUpto;
+        if (!exp) return false;
+        const diff = Math.ceil((new Date(exp) - now) / (1000 * 60 * 60 * 24));
         return diff <= 30;
       })
       .map((p) => ({
@@ -66,13 +79,49 @@ export const getDashboardStats = (req, res) => {
         vehicleReg: p.vehicleReg,
         customerName: p.customerName,
         customerPhone: p.customerPhone,
-        date: p.validUpto,
-        daysLeft: Math.ceil((new Date(p.validUpto) - now) / (1000 * 60 * 60 * 24)),
+        date: p.expiryDate || p.validUpto,
+        daysLeft: Math.ceil((new Date(p.expiryDate || p.validUpto) - now) / (1000 * 60 * 60 * 24)),
         dueAmount: Number(p.dueAmount) || 0,
         status: p.status
       }));
 
-    const criticalExpiries = [...criticalInsurances, ...criticalPermits].sort(
+    const criticalFitness = fitnessList
+      .filter((f) => {
+        if (!f.expiryDate) return false;
+        const diff = Math.ceil((new Date(f.expiryDate) - now) / (1000 * 60 * 60 * 24));
+        return diff <= 30;
+      })
+      .map((f) => ({
+        type: "Fitness",
+        id: f.id,
+        vehicleReg: f.vehicleReg,
+        customerName: f.customerName,
+        customerPhone: f.customerPhone,
+        date: f.expiryDate,
+        daysLeft: Math.ceil((new Date(f.expiryDate) - now) / (1000 * 60 * 60 * 24)),
+        dueAmount: Number(f.dueAmount) || 0,
+        status: f.status
+      }));
+
+    const criticalDL = dlList
+      .filter((d) => {
+        if (!d.expiryDate) return false;
+        const diff = Math.ceil((new Date(d.expiryDate) - now) / (1000 * 60 * 60 * 24));
+        return diff <= 30;
+      })
+      .map((d) => ({
+        type: "Driving Licence",
+        id: d.id,
+        dlNumber: d.dlNumber,
+        customerName: d.customerName,
+        customerPhone: d.customerPhone,
+        date: d.expiryDate,
+        daysLeft: Math.ceil((new Date(d.expiryDate) - now) / (1000 * 60 * 60 * 24)),
+        dueAmount: Number(d.dueAmount) || 0,
+        status: d.status
+      }));
+
+    const criticalExpiries = [...criticalInsurances, ...criticalPermits, ...criticalFitness, ...criticalDL].sort(
       (a, b) => a.daysLeft - b.daysLeft
     );
 
@@ -83,6 +132,8 @@ export const getDashboardStats = (req, res) => {
         totalVehicles: vehicles.length,
         totalInsurances: insurances.length,
         totalPermits: permits.length,
+        totalFitness: fitnessList.length,
+        totalDrivingLicences: dlList.length,
 
         // Cross-service monetary aggregates
         totalDueAmount,
@@ -110,6 +161,20 @@ export const getDashboardStats = (req, res) => {
         activePermits: permits.filter((p) => p.status === "Active").length,
         expiringPermitsCount: criticalPermits.length,
 
+        // Fitness stream
+        fitnessBilled,
+        fitnessPaid,
+        fitnessDue,
+        activeFitness: fitnessList.filter((f) => f.status === "Active").length,
+        expiringFitnessCount: criticalFitness.length,
+
+        // DL stream
+        dlBilled,
+        dlPaid,
+        dlDue,
+        activeDrivingLicences: dlList.filter((d) => d.status === "Active").length,
+        expiringDLCount: criticalDL.length,
+
         totalExpiringSoon: criticalExpiries.length,
         pendingCount: dueCustomersCount,
         completedCount: paidCustomersCount,
@@ -119,6 +184,8 @@ export const getDashboardStats = (req, res) => {
       recentCustomers: customers.slice(0, 8),
       recentInsurances: insurances.slice(0, 6),
       recentPermits: permits.slice(0, 6),
+      recentFitness: fitnessList.slice(0, 6),
+      recentDrivingLicences: dlList.slice(0, 6),
       lastUpdated: data.lastUpdated || new Date().toISOString()
     });
   } catch (error) {

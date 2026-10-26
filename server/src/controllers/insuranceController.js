@@ -170,10 +170,11 @@ export const createInsurance = (req, res) => {
     } = req.body;
 
     const effVehicleId = vehicleId || req.body.vehicleReg;
-    if (!policyNumber || !effVehicleId || !insuranceCompany || !expiryDate) {
+    const underwriterName = (req.body.underwriter || insuranceCompany || "National Insurance").trim();
+    if (!effVehicleId || !expiryDate) {
       return res.status(400).json({
         success: false,
-        error: "Policy Number, Vehicle, Insurance Company, and Expiry Date are required."
+        error: "Vehicle number and Expiry Date are required."
       });
     }
 
@@ -190,16 +191,18 @@ export const createInsurance = (req, res) => {
     const total = Number(totalAmount !== undefined ? totalAmount : premiumAmount) || 0;
     const paid = Number(paidAmount) || 0;
     const payment = computePayment(total, paid);
+    const assignedPolicyNumber = (policyNumber || `POL-${Date.now().toString().slice(-6)}`).trim().toUpperCase();
 
     const newInsurance = {
       id: newId,
-      policyNumber: policyNumber.trim().toUpperCase(),
+      policyNumber: assignedPolicyNumber,
       vehicleId: effVehicleId.trim().toUpperCase(),
       vehicleReg: (req.body.vehicleReg || effVehicleId).toUpperCase().trim(),
       customerId: customer ? customer.id : (req.body.customerId || ""),
       customerName: cleanName || (customer ? customer.name : "Customer"),
       customerPhone: cleanPhone,
-      insuranceCompany: insuranceCompany.trim(),
+      insuranceCompany: underwriterName,
+      underwriter: underwriterName,
       coverageType: coverageType || "Comprehensive Package",
       issueDate: issueDate || new Date().toISOString().split("T")[0],
       expiryDate,
@@ -210,8 +213,13 @@ export const createInsurance = (req, res) => {
       dueAmount: payment.dueAmount,
       paymentStatus: payment.paymentStatus,
       ncbPercentage: Number(ncbPercentage) || 0,
+      documentUrl: req.body.documentUrl || "",
+      documentName: req.body.documentName || "",
+      documentSize: Number(req.body.documentSize) || 0,
+      uploadedAt: req.body.documentUrl ? new Date().toISOString() : "",
       status,
       notes: (notes || "").trim(),
+      renewalHistory: [],
       createdAt: new Date().toISOString()
     };
 
@@ -251,12 +259,20 @@ export const updateInsurance = (req, res) => {
     const expiry = req.body.expiryDate || current.expiryDate;
     const updatedStatus = computeStatus(expiry);
 
+    const underwriterName = req.body.underwriter || req.body.insuranceCompany || current.underwriter || current.insuranceCompany;
+
     const updated = {
       ...current,
       ...req.body,
       customerId: customer ? customer.id : current.customerId,
       customerName: cleanName || (customer ? customer.name : current.customerName),
       customerPhone: cleanPhone,
+      insuranceCompany: underwriterName,
+      underwriter: underwriterName,
+      documentUrl: req.body.documentUrl !== undefined ? req.body.documentUrl : current.documentUrl,
+      documentName: req.body.documentName !== undefined ? req.body.documentName : current.documentName,
+      documentSize: req.body.documentSize !== undefined ? Number(req.body.documentSize) : current.documentSize,
+      uploadedAt: req.body.documentUrl ? new Date().toISOString() : current.uploadedAt,
       premiumAmount: total,
       totalAmount: payment.totalAmount,
       paidAmount: payment.paidAmount,
@@ -305,7 +321,7 @@ export const deleteInsurance = (req, res) => {
 export const renewInsurance = (req, res) => {
   try {
     const { id } = req.params;
-    const { newPolicyNumber, newPremiumAmount, newPaidAmount, newIdvAmount, newNcbPercentage } = req.body;
+    const { newPolicyNumber, newPremiumAmount, newPaidAmount, newIdvAmount, newNcbPercentage, documentUrl, documentName, documentSize } = req.body;
     const data = loadData();
     const idx = (data.insurances || []).findIndex((i) => i.id === id);
 
@@ -326,6 +342,7 @@ export const renewInsurance = (req, res) => {
       id: `HIST-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
       policyNumber: current.policyNumber,
       insuranceCompany: current.insuranceCompany,
+      underwriter: current.underwriter || current.insuranceCompany,
       coverageType: current.coverageType,
       issueDate: current.issueDate || current.startDate,
       expiryDate: current.expiryDate,
@@ -334,6 +351,8 @@ export const renewInsurance = (req, res) => {
       paidAmount: current.paidAmount || 0,
       dueAmount: current.dueAmount || 0,
       paymentStatus: current.paymentStatus || "Paid",
+      documentUrl: current.documentUrl,
+      documentName: current.documentName,
       idvAmount: current.idvAmount,
       ncbPercentage: current.ncbPercentage,
       renewedOn: new Date().toISOString().split("T")[0],
@@ -359,6 +378,9 @@ export const renewInsurance = (req, res) => {
       paymentStatus: payment.paymentStatus,
       idvAmount: newIdvAmount ? Number(newIdvAmount) : current.idvAmount,
       ncbPercentage: newNcbPercentage !== undefined ? Number(newNcbPercentage) : Math.min(50, (current.ncbPercentage || 20) + 5),
+      documentUrl: documentUrl !== undefined ? documentUrl : current.documentUrl,
+      documentName: documentName !== undefined ? documentName : current.documentName,
+      documentSize: documentSize !== undefined ? Number(documentSize) : current.documentSize,
       status: "Active",
       renewalHistory: history,
       notes: `Renewed on ${new Date().toISOString().split("T")[0]}. Previous policy: ${current.policyNumber}`

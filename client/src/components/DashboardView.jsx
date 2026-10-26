@@ -13,6 +13,8 @@ import {
   Clock,
   Shield,
   FileCheck,
+  Activity,
+  Award,
   AlertTriangle,
   TrendingUp,
   ExternalLink,
@@ -32,14 +34,18 @@ export default function DashboardView({
   customers = [],
   insurances = [],
   permits = [],
+  fitnessList = [],
+  drivingLicences = [],
   onNavigate,
   onAddCustomer,
   onEditCustomer,
   onDeleteCustomer,
   onAddInsurance,
-  onAddPermit
+  onAddPermit,
+  onAddFitness,
+  onAddDL
 }) {
-  const [activeTab, setActiveTab] = useState("customers"); // "customers" | "insurance" | "permits" | "dues"
+  const [activeTab, setActiveTab] = useState("customers"); // "customers" | "insurance" | "permits" | "fitness" | "dl" | "dues"
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
 
   // Comprehensive Monetary Aggregates
@@ -51,13 +57,21 @@ export default function DashboardView({
   const insPaid = stats?.insPaid ?? insurances.reduce((sum, i) => sum + (Number(i.paidAmount) || 0), 0);
   const insDue = stats?.insDue ?? insurances.reduce((sum, i) => sum + (Number(i.dueAmount) || 0), 0);
 
-  const permitBilled = stats?.permitBilled ?? permits.reduce((sum, p) => sum + (Number(p.totalAmount ?? p.feeAmount) || 0), 0);
+  const permitBilled = stats?.permitBilled ?? permits.reduce((sum, p) => sum + (Number(p.totalAmount ?? p.authFeePaid) || 0), 0);
   const permitPaid = stats?.permitPaid ?? permits.reduce((sum, p) => sum + (Number(p.paidAmount) || 0), 0);
   const permitDue = stats?.permitDue ?? permits.reduce((sum, p) => sum + (Number(p.dueAmount) || 0), 0);
 
-  const totalBilled = stats?.totalBilledAmount ?? (custBilled + insBilled + permitBilled);
-  const totalPaid = stats?.totalPaidAmount ?? (custPaid + insPaid + permitPaid);
-  const totalDue = stats?.totalDueAmount ?? (custDue + insDue + permitDue);
+  const fitnessBilled = stats?.fitnessBilled ?? fitnessList.reduce((sum, f) => sum + (Number(f.totalAmount) || 0), 0);
+  const fitnessPaid = stats?.fitnessPaid ?? fitnessList.reduce((sum, f) => sum + (Number(f.paidAmount) || 0), 0);
+  const fitnessDue = stats?.fitnessDue ?? fitnessList.reduce((sum, f) => sum + (Number(f.dueAmount) || 0), 0);
+
+  const dlBilled = stats?.dlBilled ?? drivingLicences.reduce((sum, d) => sum + (Number(d.totalAmount) || 0), 0);
+  const dlPaid = stats?.dlPaid ?? drivingLicences.reduce((sum, d) => sum + (Number(d.paidAmount) || 0), 0);
+  const dlDue = stats?.dlDue ?? drivingLicences.reduce((sum, d) => sum + (Number(d.dueAmount) || 0), 0);
+
+  const totalBilled = stats?.totalBilledAmount ?? (custBilled + insBilled + permitBilled + fitnessBilled + dlBilled);
+  const totalPaid = stats?.totalPaidAmount ?? (custPaid + insPaid + permitPaid + fitnessPaid + dlPaid);
+  const totalDue = stats?.totalDueAmount ?? (custDue + insDue + permitDue + fitnessDue + dlDue);
 
   const totalCustomers = stats?.totalCustomers ?? customers.length;
   const dueCustomersCount = stats?.dueCustomersCount ?? customers.filter((c) => (Number(c.dueAmount) || 0) > 0).length;
@@ -73,16 +87,28 @@ export default function DashboardView({
       due: custDue
     },
     {
-      label: "Vehicle Insurance",
+      label: "Insurance",
       billed: insBilled,
       collected: insPaid,
       due: insDue
     },
     {
-      label: "RTO Permits",
+      label: "Permits",
       billed: permitBilled,
       collected: permitPaid,
       due: permitDue
+    },
+    {
+      label: "Fitness",
+      billed: fitnessBilled,
+      collected: fitnessPaid,
+      due: fitnessDue
+    },
+    {
+      label: "DL Desk",
+      billed: dlBilled,
+      collected: dlPaid,
+      due: dlDue
     }
   ];
 
@@ -93,14 +119,24 @@ export default function DashboardView({
       color: "#1e3a8a"
     },
     {
-      label: "Vehicle Insurance",
+      label: "Insurance",
       value: insBilled,
       color: "#2563eb"
     },
     {
-      label: "RTO Permits",
+      label: "Permits",
       value: permitBilled,
       color: "#059669"
+    },
+    {
+      label: "Fitness",
+      value: fitnessBilled,
+      color: "#d97706"
+    },
+    {
+      label: "Driving Licence",
+      value: dlBilled,
+      color: "#6366f1"
     }
   ];
 
@@ -129,19 +165,52 @@ export default function DashboardView({
       })),
     ...permits
       .filter((p) => {
-        if (!p.validUpto) return false;
-        const diff = Math.ceil((new Date(p.validUpto) - now) / (1000 * 60 * 60 * 24));
+        const exp = p.expiryDate || p.validUpto;
+        if (!exp) return false;
+        const diff = Math.ceil((new Date(exp) - now) / (1000 * 60 * 60 * 24));
         return diff <= 30;
       })
       .map((p) => ({
         type: "Permit",
-        title: `${p.permitType || "Permit"} #${p.permitNumber || "N/A"}`,
+        title: `Permit #${p.permitNumber || "N/A"}`,
         reg: p.vehicleReg,
         customerName: p.customerName,
         customerPhone: p.customerPhone,
-        date: p.validUpto,
-        daysLeft: Math.ceil((new Date(p.validUpto) - now) / (1000 * 60 * 60 * 24)),
+        date: p.expiryDate || p.validUpto,
+        daysLeft: Math.ceil((new Date(p.expiryDate || p.validUpto) - now) / (1000 * 60 * 60 * 24)),
         dueAmount: Number(p.dueAmount) || 0
+      })),
+    ...fitnessList
+      .filter((f) => {
+        if (!f.expiryDate) return false;
+        const diff = Math.ceil((new Date(f.expiryDate) - now) / (1000 * 60 * 60 * 24));
+        return diff <= 30;
+      })
+      .map((f) => ({
+        type: "Fitness",
+        title: `Fitness #${f.fitnessNumber || "N/A"}`,
+        reg: f.vehicleReg,
+        customerName: f.customerName,
+        customerPhone: f.customerPhone,
+        date: f.expiryDate,
+        daysLeft: Math.ceil((new Date(f.expiryDate) - now) / (1000 * 60 * 60 * 24)),
+        dueAmount: Number(f.dueAmount) || 0
+      })),
+    ...drivingLicences
+      .filter((d) => {
+        if (!d.expiryDate) return false;
+        const diff = Math.ceil((new Date(d.expiryDate) - now) / (1000 * 60 * 60 * 24));
+        return diff <= 30;
+      })
+      .map((d) => ({
+        type: "Driving Licence",
+        title: `DL #${d.dlNumber || "N/A"}`,
+        reg: "DL",
+        customerName: d.customerName,
+        customerPhone: d.customerPhone,
+        date: d.expiryDate,
+        daysLeft: Math.ceil((new Date(d.expiryDate) - now) / (1000 * 60 * 60 * 24)),
+        dueAmount: Number(d.dueAmount) || 0
       }))
   ].sort((a, b) => a.daysLeft - b.daysLeft);
 
@@ -165,7 +234,7 @@ export default function DashboardView({
         source: "Insurance Premium",
         name: i.customerName,
         phone: i.customerPhone,
-        identifier: `${i.vehicleReg || ""} • ${i.insuranceCompany || "Policy"}`,
+        identifier: `${i.vehicleReg || ""} • ${i.underwriter || i.insuranceCompany || "Policy"}`,
         dueAmount: Number(i.dueAmount) || 0,
         paidAmount: Number(i.paidAmount) || 0,
         totalAmount: Number(i.totalAmount ?? i.premiumAmount) || 0,
@@ -177,11 +246,35 @@ export default function DashboardView({
         source: "Permit Govt Fee",
         name: p.customerName,
         phone: p.customerPhone,
-        identifier: `${p.vehicleReg || ""} • ${p.permitType || "Permit"}`,
+        identifier: `${p.vehicleReg || ""} • ${p.rtoAffiliated || "Permit"}`,
         dueAmount: Number(p.dueAmount) || 0,
         paidAmount: Number(p.paidAmount) || 0,
-        totalAmount: Number(p.totalAmount ?? p.feeAmount) || 0,
+        totalAmount: Number(p.totalAmount ?? p.authFeePaid) || 0,
         navigateTarget: "permits"
+      })),
+    ...fitnessList
+      .filter((f) => (Number(f.dueAmount) || 0) > 0)
+      .map((f) => ({
+        source: "Fitness Fee",
+        name: f.customerName,
+        phone: f.customerPhone,
+        identifier: `${f.vehicleReg || ""} • ${f.rtoAffiliated || "Fitness"}`,
+        dueAmount: Number(f.dueAmount) || 0,
+        paidAmount: Number(f.paidAmount) || 0,
+        totalAmount: Number(f.totalAmount) || 0,
+        navigateTarget: "fitness"
+      })),
+    ...drivingLicences
+      .filter((d) => (Number(d.dueAmount) || 0) > 0)
+      .map((d) => ({
+        source: "DL Service Fee",
+        name: d.customerName,
+        phone: d.customerPhone,
+        identifier: `${d.dlNumber || "DL"} • ${d.rtoAffiliated || "DL"}`,
+        dueAmount: Number(d.dueAmount) || 0,
+        paidAmount: Number(d.paidAmount) || 0,
+        totalAmount: Number(d.totalAmount) || 0,
+        navigateTarget: "driving-licences"
       }))
   ].sort((a, b) => b.dueAmount - a.dueAmount);
 
@@ -190,35 +283,32 @@ export default function DashboardView({
       {/* Workspace Header with Quick Action Suite & Report Generator */}
       <div className="view-header">
         <div>
-          <h1 className="view-title">Operations & Visual Insights Command Center</h1>
+          <h1 className="view-title">Operations Command Center</h1>
           <p className="view-subtitle">
-            GuruKripa Yatayat • Unified financial analytics, graphical turnover trends, collection recovery, and service records.
+            GuruKripa Yatayat • Unified transport operations, insurance, permits, fitness certificates & driving licences.
           </p>
         </div>
 
-        <div className="view-header-actions">
-          {/* Executive Insights Report Button */}
-          <button
-            className="btn btn-secondary btn-sm"
-            onClick={() => setIsReportModalOpen(true)}
-            style={{
-              background: "#eff6ff",
-              borderColor: "#bfdbfe",
-              color: "#1d4ed8",
-              fontWeight: 600
-            }}
-          >
-            <FileText size={13} color="#2563eb" />
-            <span>Generate Insights Report</span>
-          </button>
-
+        <div className="view-header-actions" style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+          {onAddFitness && (
+            <button className="btn btn-secondary btn-sm" onClick={onAddFitness} style={{ color: "#d97706" }}>
+              <Activity size={13} />
+              <span>+ Fitness</span>
+            </button>
+          )}
+          {onAddDL && (
+            <button className="btn btn-secondary btn-sm" onClick={onAddDL} style={{ color: "#6366f1" }}>
+              <Award size={13} />
+              <span>+ Driving Licence</span>
+            </button>
+          )}
           <button className="btn btn-secondary btn-sm" onClick={onAddInsurance}>
             <Shield size={13} color="#2563eb" />
-            <span>+ Add Insurance</span>
+            <span>+ Insurance</span>
           </button>
           <button className="btn btn-secondary btn-sm" onClick={onAddPermit}>
             <FileCheck size={13} color="#059669" />
-            <span>+ Add Permit</span>
+            <span>+ Permit</span>
           </button>
           <button className="btn btn-primary btn-sm" onClick={onAddCustomer}>
             <Plus size={14} />
@@ -583,6 +673,130 @@ export default function DashboardView({
             <ArrowRight size={12} />
           </button>
         </div>
+
+        {/* Fitness Desk Stream */}
+        <div
+          style={{
+            background: "#ffffff",
+            border: "1px solid var(--border-default)",
+            borderRadius: "8px",
+            padding: "16px",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "space-between"
+          }}
+        >
+          <div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <div style={{ width: "28px", height: "28px", borderRadius: "6px", background: "rgba(217, 119, 6, 0.08)", display: "flex", alignItems: "center", justifyContent: "center", color: "#d97706" }}>
+                  <Activity size={15} />
+                </div>
+                <h3 style={{ fontSize: "0.92rem", fontWeight: 700, margin: 0, color: "var(--text-primary)" }}>Fitness Desk</h3>
+              </div>
+              <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "#d97706", background: "rgba(217, 119, 6, 0.08)", padding: "2px 8px", borderRadius: "999px" }}>
+                {fitnessList.length} Certificates
+              </span>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "8px", background: "var(--bg-subtle, #f8fafc)", padding: "10px", borderRadius: "6px" }}>
+              <div>
+                <div style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>Fee</div>
+                <div style={{ fontWeight: 700, fontSize: "0.85rem", color: "var(--text-primary)" }}>₹{fitnessBilled.toLocaleString("en-IN")}</div>
+              </div>
+              <div>
+                <div style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>Paid</div>
+                <div style={{ fontWeight: 700, fontSize: "0.85rem", color: "#16a34a" }}>₹{fitnessPaid.toLocaleString("en-IN")}</div>
+              </div>
+              <div>
+                <div style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>Due</div>
+                <div style={{ fontWeight: 700, fontSize: "0.85rem", color: fitnessDue > 0 ? "#dc2626" : "#16a34a" }}>₹{fitnessDue.toLocaleString("en-IN")}</div>
+              </div>
+            </div>
+          </div>
+
+          <button
+            onClick={() => onNavigate("fitness")}
+            style={{
+              marginTop: "12px",
+              background: "none",
+              border: "none",
+              padding: "4px 0",
+              color: "#d97706",
+              fontWeight: 600,
+              fontSize: "0.78rem",
+              display: "flex",
+              alignItems: "center",
+              gap: "4px",
+              cursor: "pointer"
+            }}
+          >
+            <span>Open Fitness Register</span>
+            <ArrowRight size={12} />
+          </button>
+        </div>
+
+        {/* Driving Licence Stream */}
+        <div
+          style={{
+            background: "#ffffff",
+            border: "1px solid var(--border-default)",
+            borderRadius: "8px",
+            padding: "16px",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "space-between"
+          }}
+        >
+          <div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <div style={{ width: "28px", height: "28px", borderRadius: "6px", background: "rgba(99, 102, 241, 0.08)", display: "flex", alignItems: "center", justifyContent: "center", color: "#6366f1" }}>
+                  <Award size={15} />
+                </div>
+                <h3 style={{ fontSize: "0.92rem", fontWeight: 700, margin: 0, color: "var(--text-primary)" }}>Driving Licences</h3>
+              </div>
+              <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "#6366f1", background: "rgba(99, 102, 241, 0.08)", padding: "2px 8px", borderRadius: "999px" }}>
+                {drivingLicences.length} Licences
+              </span>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "8px", background: "var(--bg-subtle, #f8fafc)", padding: "10px", borderRadius: "6px" }}>
+              <div>
+                <div style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>Fee</div>
+                <div style={{ fontWeight: 700, fontSize: "0.85rem", color: "var(--text-primary)" }}>₹{dlBilled.toLocaleString("en-IN")}</div>
+              </div>
+              <div>
+                <div style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>Paid</div>
+                <div style={{ fontWeight: 700, fontSize: "0.85rem", color: "#16a34a" }}>₹{dlPaid.toLocaleString("en-IN")}</div>
+              </div>
+              <div>
+                <div style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>Due</div>
+                <div style={{ fontWeight: 700, fontSize: "0.85rem", color: dlDue > 0 ? "#dc2626" : "#16a34a" }}>₹{dlDue.toLocaleString("en-IN")}</div>
+              </div>
+            </div>
+          </div>
+
+          <button
+            onClick={() => onNavigate("driving-licences")}
+            style={{
+              marginTop: "12px",
+              background: "none",
+              border: "none",
+              padding: "4px 0",
+              color: "#6366f1",
+              fontWeight: 600,
+              fontSize: "0.78rem",
+              display: "flex",
+              alignItems: "center",
+              gap: "4px",
+              cursor: "pointer"
+            }}
+          >
+            <span>Open Licences Register</span>
+            <ArrowRight size={12} />
+          </button>
+        </div>
       </div>
 
       {/* Critical Expiries Alert Section (if any within 30 days) */}
@@ -665,14 +879,14 @@ export default function DashboardView({
           }}
         >
           {/* Tab buttons */}
-          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
             <button
               onClick={() => setActiveTab("customers")}
               className={`btn btn-sm ${activeTab === "customers" ? "btn-primary" : "btn-secondary"}`}
               style={{ fontSize: "0.78rem" }}
             >
               <Users size={12} />
-              <span>Recent Customers ({customers.length})</span>
+              <span>Customers ({customers.length})</span>
             </button>
 
             <button
@@ -681,7 +895,7 @@ export default function DashboardView({
               style={{ fontSize: "0.78rem" }}
             >
               <Shield size={12} />
-              <span>Recent Policies ({insurances.length})</span>
+              <span>Insurance ({insurances.length})</span>
             </button>
 
             <button
@@ -690,7 +904,25 @@ export default function DashboardView({
               style={{ fontSize: "0.78rem" }}
             >
               <FileCheck size={12} />
-              <span>Recent Permits ({permits.length})</span>
+              <span>Permits ({permits.length})</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab("fitness")}
+              className={`btn btn-sm ${activeTab === "fitness" ? "btn-primary" : "btn-secondary"}`}
+              style={{ fontSize: "0.78rem" }}
+            >
+              <Activity size={12} />
+              <span>Fitness ({fitnessList.length})</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab("dl")}
+              className={`btn btn-sm ${activeTab === "dl" ? "btn-primary" : "btn-secondary"}`}
+              style={{ fontSize: "0.78rem" }}
+            >
+              <Award size={12} />
+              <span>DL ({drivingLicences.length})</span>
             </button>
 
             <button
@@ -708,7 +940,13 @@ export default function DashboardView({
 
           <button
             className="btn btn-secondary btn-sm"
-            onClick={() => onNavigate(activeTab === "insurance" ? "insurance" : activeTab === "permits" ? "permits" : "customers")}
+            onClick={() => {
+              if (activeTab === "insurance") onNavigate("insurance");
+              else if (activeTab === "permits") onNavigate("permits");
+              else if (activeTab === "fitness") onNavigate("fitness");
+              else if (activeTab === "dl") onNavigate("driving-licences");
+              else onNavigate("customers");
+            }}
           >
             <span>View Full Directory</span>
             <ExternalLink size={12} />
@@ -940,6 +1178,160 @@ export default function DashboardView({
                           </td>
                           <td>
                             <span style={{ fontSize: "0.8rem", color: "var(--text-secondary)" }}>{p.validUpto || "-"}</span>
+                          </td>
+                          <td>
+                            {due === 0 && total > 0 ? (
+                              <span className="status-badge status-active"><CheckCircle2 size={11} style={{ marginRight: "3px" }} />Paid</span>
+                            ) : paid > 0 && due > 0 ? (
+                              <span className="status-badge status-warning"><Clock size={11} style={{ marginRight: "3px" }} />Partial</span>
+                            ) : (
+                              <span className="status-badge" style={{ background: "rgba(220, 38, 38, 0.1)", color: "#dc2626" }}>Due</span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* TAB 4: RECENT FITNESS CERTIFICATES */}
+        {activeTab === "fitness" && (
+          <div>
+            {fitnessList.length === 0 ? (
+              <div className="empty-state">
+                <Activity size={20} />
+                <h3 className="empty-state-title">No Fitness Records Yet</h3>
+                <p className="empty-state-desc">Record vehicle fitness certificates with RTO affiliation and PDF documents.</p>
+                <button className="btn btn-primary btn-sm" onClick={onAddFitness}>
+                  <Plus size={13} />
+                  <span>Issue First Fitness</span>
+                </button>
+              </div>
+            ) : (
+              <div className="table-container">
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>Vehicle & Fitness No</th>
+                      <th>Customer & Mobile</th>
+                      <th>RTO Affiliation</th>
+                      <th>Fee Amount</th>
+                      <th>Paid / Due</th>
+                      <th>Valid Upto</th>
+                      <th>Payment Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {fitnessList.slice(0, 8).map((f) => {
+                      const total = Number(f.totalAmount) || 0;
+                      const paid = Number(f.paidAmount) || 0;
+                      const due = Number(f.dueAmount) !== undefined ? Number(f.dueAmount) : Math.max(0, total - paid);
+
+                      return (
+                        <tr key={f.id}>
+                          <td>
+                            <div style={{ fontWeight: 700, color: "var(--brand-primary)" }}>{f.vehicleReg}</div>
+                            <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontFamily: "monospace" }}>#{f.fitnessNumber || "N/A"}</div>
+                          </td>
+                          <td>
+                            <div style={{ fontWeight: 600 }}>{f.customerName || "Customer"}</div>
+                            <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>{f.customerPhone || "-"}</div>
+                          </td>
+                          <td>
+                            <span style={{ fontSize: "0.8rem", color: "var(--text-secondary)" }}>{f.rtoAffiliated || "-"}</span>
+                          </td>
+                          <td>
+                            <span style={{ fontWeight: 600 }}>₹{total.toLocaleString("en-IN")}</span>
+                          </td>
+                          <td>
+                            <div style={{ fontSize: "0.78rem", color: "#16a34a", fontWeight: 600 }}>Paid: ₹{paid.toLocaleString("en-IN")}</div>
+                            <div style={{ fontSize: "0.76rem", color: due > 0 ? "#dc2626" : "var(--text-muted)", fontWeight: 600 }}>
+                              Due: ₹{due.toLocaleString("en-IN")}
+                            </div>
+                          </td>
+                          <td>
+                            <span style={{ fontSize: "0.8rem", color: "var(--text-secondary)" }}>{f.expiryDate || "-"}</span>
+                          </td>
+                          <td>
+                            {due === 0 && total > 0 ? (
+                              <span className="status-badge status-active"><CheckCircle2 size={11} style={{ marginRight: "3px" }} />Paid</span>
+                            ) : paid > 0 && due > 0 ? (
+                              <span className="status-badge status-warning"><Clock size={11} style={{ marginRight: "3px" }} />Partial</span>
+                            ) : (
+                              <span className="status-badge" style={{ background: "rgba(220, 38, 38, 0.1)", color: "#dc2626" }}>Due</span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* TAB 5: RECENT DRIVING LICENCES */}
+        {activeTab === "dl" && (
+          <div>
+            {drivingLicences.length === 0 ? (
+              <div className="empty-state">
+                <Award size={20} />
+                <h3 className="empty-state-title">No Driving Licences Yet</h3>
+                <p className="empty-state-desc">Record driving licences with RTO details, expiry, and PDF document.</p>
+                <button className="btn btn-primary btn-sm" onClick={onAddDL}>
+                  <Plus size={13} />
+                  <span>Issue First Licence</span>
+                </button>
+              </div>
+            ) : (
+              <div className="table-container">
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>DL Number</th>
+                      <th>Customer & Mobile</th>
+                      <th>RTO Affiliation</th>
+                      <th>Fee Amount</th>
+                      <th>Paid / Due</th>
+                      <th>Valid Upto</th>
+                      <th>Payment Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {drivingLicences.slice(0, 8).map((d) => {
+                      const total = Number(d.totalAmount) || 0;
+                      const paid = Number(d.paidAmount) || 0;
+                      const due = Number(d.dueAmount) !== undefined ? Number(d.dueAmount) : Math.max(0, total - paid);
+
+                      return (
+                        <tr key={d.id}>
+                          <td>
+                            <div style={{ fontWeight: 700, color: "var(--brand-primary)", fontFamily: "monospace" }}>{d.dlNumber || "DL RECORD"}</div>
+                            <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>{d.licenceType || "Driving Licence"}</div>
+                          </td>
+                          <td>
+                            <div style={{ fontWeight: 600 }}>{d.customerName || "Customer"}</div>
+                            <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>{d.customerPhone || "-"}</div>
+                          </td>
+                          <td>
+                            <span style={{ fontSize: "0.8rem", color: "var(--text-secondary)" }}>{d.rtoAffiliated || "-"}</span>
+                          </td>
+                          <td>
+                            <span style={{ fontWeight: 600 }}>₹{total.toLocaleString("en-IN")}</span>
+                          </td>
+                          <td>
+                            <div style={{ fontSize: "0.78rem", color: "#16a34a", fontWeight: 600 }}>Paid: ₹{paid.toLocaleString("en-IN")}</div>
+                            <div style={{ fontSize: "0.76rem", color: due > 0 ? "#dc2626" : "var(--text-muted)", fontWeight: 600 }}>
+                              Due: ₹{due.toLocaleString("en-IN")}
+                            </div>
+                          </td>
+                          <td>
+                            <span style={{ fontSize: "0.8rem", color: "var(--text-secondary)" }}>{d.expiryDate || "-"}</span>
                           </td>
                           <td>
                             {due === 0 && total > 0 ? (

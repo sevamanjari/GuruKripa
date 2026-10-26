@@ -81,6 +81,8 @@ export const getPermits = (req, res) => {
           p.vehicleReg.toLowerCase().includes(q) ||
           (p.customerName && p.customerName.toLowerCase().includes(q)) ||
           (p.customerPhone && p.customerPhone.toLowerCase().includes(q)) ||
+          (p.rtoAffiliated && p.rtoAffiliated.toLowerCase().includes(q)) ||
+          (p.issuingRto && p.issuingRto.toLowerCase().includes(q)) ||
           p.permitType.toLowerCase().includes(q) ||
           p.state.toLowerCase().includes(q)
       );
@@ -160,19 +162,23 @@ export const createPermit = (req, res) => {
       issueDate,
       expiryDate,
       issuingRto,
+      rtoAffiliated,
       authorizedStates,
       state,
       authFeePaid,
       totalAmount,
       paidAmount,
+      documentUrl,
+      documentName,
+      documentSize,
       notes
     } = req.body;
 
     const effVehicleId = vehicleId || req.body.vehicleReg;
-    if (!permitNumber || !effVehicleId || !permitType || !expiryDate) {
+    if (!effVehicleId || !expiryDate) {
       return res.status(400).json({
         success: false,
-        error: "Permit Number, Vehicle, Permit Type, and Expiry Date are required."
+        error: "Vehicle number and Expiry Date are required."
       });
     }
 
@@ -189,19 +195,22 @@ export const createPermit = (req, res) => {
     const total = Number(totalAmount !== undefined ? totalAmount : authFeePaid) || 0;
     const paid = Number(paidAmount) || 0;
     const payment = computePayment(total, paid);
+    const assignedRto = (rtoAffiliated || issuingRto || "RTO Indore (MP-09)").trim();
+    const assignedPermitNumber = (permitNumber || `PRM-${Date.now().toString().slice(-6)}`).trim().toUpperCase();
 
     const newPermit = {
       id: newId,
-      permitNumber: permitNumber.trim().toUpperCase(),
+      permitNumber: assignedPermitNumber,
       vehicleId: effVehicleId.trim().toUpperCase(),
       vehicleReg: (req.body.vehicleReg || effVehicleId).toUpperCase().trim(),
       customerId: customer ? customer.id : (req.body.customerId || ""),
       customerName: cleanName || (customer ? customer.name : "Customer"),
       customerPhone: cleanPhone,
-      permitType: permitType.trim(),
+      permitType: (permitType || "State Goods Permit").trim(),
       issueDate: issueDate || new Date().toISOString().split("T")[0],
       expiryDate,
-      issuingRto: issuingRto || "RTO Indore (MP-09)",
+      issuingRto: assignedRto,
+      rtoAffiliated: assignedRto,
       authorizedStates: authorizedStates || "All India (National Permit)",
       state: state || "All India",
       authFeePaid: total,
@@ -209,8 +218,13 @@ export const createPermit = (req, res) => {
       paidAmount: payment.paidAmount,
       dueAmount: payment.dueAmount,
       paymentStatus: payment.paymentStatus,
+      documentUrl: documentUrl || "",
+      documentName: documentName || "",
+      documentSize: Number(documentSize) || 0,
+      uploadedAt: documentUrl ? new Date().toISOString() : "",
       status,
       notes: (notes || "").trim(),
+      renewalHistory: [],
       createdAt: new Date().toISOString()
     };
 
@@ -249,6 +263,7 @@ export const updatePermit = (req, res) => {
 
     const expiry = req.body.expiryDate || current.expiryDate;
     const updatedStatus = computePermitStatus(expiry);
+    const assignedRto = req.body.rtoAffiliated || req.body.issuingRto || current.rtoAffiliated || current.issuingRto;
 
     const updated = {
       ...current,
@@ -256,6 +271,12 @@ export const updatePermit = (req, res) => {
       customerId: customer ? customer.id : current.customerId,
       customerName: cleanName || (customer ? customer.name : current.customerName),
       customerPhone: cleanPhone,
+      rtoAffiliated: assignedRto,
+      issuingRto: assignedRto,
+      documentUrl: req.body.documentUrl !== undefined ? req.body.documentUrl : current.documentUrl,
+      documentName: req.body.documentName !== undefined ? req.body.documentName : current.documentName,
+      documentSize: req.body.documentSize !== undefined ? Number(req.body.documentSize) : current.documentSize,
+      uploadedAt: req.body.documentUrl ? new Date().toISOString() : current.uploadedAt,
       authFeePaid: total,
       totalAmount: payment.totalAmount,
       paidAmount: payment.paidAmount,
@@ -304,7 +325,7 @@ export const deletePermit = (req, res) => {
 export const renewPermit = (req, res) => {
   try {
     const { id } = req.params;
-    const { newPermitNumber, newExpiryDate, newAuthFeePaid, newPaidAmount } = req.body;
+    const { newPermitNumber, newExpiryDate, newAuthFeePaid, newPaidAmount, documentUrl, documentName, documentSize } = req.body;
     const data = loadData();
     const idx = (data.permits || []).findIndex((p) => p.id === id);
 
@@ -323,6 +344,7 @@ export const renewPermit = (req, res) => {
       id: `HIST-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
       permitNumber: current.permitNumber,
       permitType: current.permitType,
+      rtoAffiliated: current.rtoAffiliated || current.issuingRto,
       state: current.state,
       issueDate: current.issueDate,
       expiryDate: current.expiryDate,
@@ -331,6 +353,8 @@ export const renewPermit = (req, res) => {
       paidAmount: current.paidAmount || 0,
       dueAmount: current.dueAmount || 0,
       paymentStatus: current.paymentStatus || "Paid",
+      documentUrl: current.documentUrl,
+      documentName: current.documentName,
       renewedOn: new Date().toISOString().split("T")[0],
       notes: current.notes || ""
     };
@@ -351,6 +375,9 @@ export const renewPermit = (req, res) => {
       paidAmount: payment.paidAmount,
       dueAmount: payment.dueAmount,
       paymentStatus: payment.paymentStatus,
+      documentUrl: documentUrl !== undefined ? documentUrl : current.documentUrl,
+      documentName: documentName !== undefined ? documentName : current.documentName,
+      documentSize: documentSize !== undefined ? Number(documentSize) : current.documentSize,
       status: "Active",
       renewalHistory: history,
       notes: `Renewed on ${new Date().toISOString().split("T")[0]}. Previous permit: ${current.permitNumber}`

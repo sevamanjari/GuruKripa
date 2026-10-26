@@ -58,6 +58,9 @@ export function sanitizeRequestBody(req, res, next) {
   if (req.body && typeof req.body === "object") {
     const sanitizeObj = (obj) => {
       for (const key of Object.keys(obj)) {
+        if (["base64Data", "data", "documentUrl"].includes(key)) {
+          continue; // Don't alter binary/base64 document payloads
+        }
         if (typeof obj[key] === "string") {
           obj[key] = sanitizeInput(obj[key]);
         } else if (obj[key] && typeof obj[key] === "object") {

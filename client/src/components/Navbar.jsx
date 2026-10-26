@@ -4,6 +4,8 @@ import {
   Users,
   Shield,
   FileText,
+  Activity,
+  Award,
   LayoutDashboard,
   LogOut,
   UserCheck,
@@ -19,9 +21,11 @@ export default function Navbar({
 }) {
   const tabs = [
     { id: "dashboard", label: "Dashboard", shortLabel: "Home", icon: LayoutDashboard },
-    { id: "customers", label: "Customers & RTO", shortLabel: "Customers", count: counts.customers, icon: Users },
-    { id: "insurance", label: "Vehicle Insurance", shortLabel: "Insurance", count: counts.insurances, icon: Shield },
+    { id: "customers", label: "Customers", shortLabel: "Clients", count: counts.customers, icon: Users },
+    { id: "insurance", label: "Insurance", shortLabel: "Insurance", count: counts.insurances, icon: Shield },
     { id: "permits", label: "Permits", shortLabel: "Permits", count: counts.permits, icon: FileText },
+    { id: "fitness", label: "Fitness", shortLabel: "Fitness", count: counts.fitness, icon: Activity },
+    { id: "driving-licences", label: "Driving Licence", shortLabel: "DL", count: counts.drivingLicences, icon: Award },
     { id: "reminders", label: "WhatsApp Alerts", shortLabel: "WhatsApp", count: counts.reminders, icon: MessageSquare }
   ];
 

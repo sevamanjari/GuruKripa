@@ -40,10 +40,26 @@ export const getMessageTemplates = () => ({
   permit_renewal: (data) =>
     `नमस्ते ${data.customerName || "ग्राहक"},\n\n` +
     `गुरूकृपा यातायात की ओर से सूचना। 🙏\n\n` +
-    `आपके वाहन *${data.vehicleReg || "वाहन"}* के *${data.permitType || "परमिट"}* की वैधता दिनांक *${data.expiryDate || "निकट"}* को समाप्त हो रही है।\n\n` +
+    `आपके वाहन *${data.vehicleReg || "वाहन"}* के परमिट की वैधता दिनांक *${data.expiryDate || "निकट"}* को समाप्त हो रही है।\n\n` +
     `समय से पूर्व नवीनीकरण करवाकर RTO पेनाल्टी से बचें।\n` +
     (data.dueAmount > 0 ? `बकाया शुल्क: ₹${data.dueAmount}\n\n` : `\n`) +
     `संपर्क करें: गुरूकृपा यातायात कार्यालय`,
+
+  fitness_renewal: (data) =>
+    `नमस्ते ${data.customerName || "ग्राहक"},\n\n` +
+    `गुरूकृपा यातायात की ओर से फिटनेस सूचना। 🙏\n\n` +
+    `आपके वाहन *${data.vehicleReg || "वाहन"}* के फिटनेस सर्टिफिकेट की वैधता दिनांक *${data.expiryDate || "निकट"}* को समाप्त हो रही है (${data.daysLeft !== undefined ? (data.daysLeft <= 0 ? "समाप्त हो चुकी है" : `${data.daysLeft} दिन शेष`) : ""})।\n\n` +
+    `RTO चालान से बचने हेतु तुरंत फिटनेस रिन्यू करवाएं।\n` +
+    (data.dueAmount > 0 ? `बकाया शुल्क: ₹${data.dueAmount}\n\n` : `\n`) +
+    `संपर्क करें: गुरूकृपा यातायात`,
+
+  dl_renewal: (data) =>
+    `नमस्ते ${data.customerName || "ग्राहक"},\n\n` +
+    `गुरूकृपा यातायात सेवा केन्द्र से सूचना। 🙏\n\n` +
+    `आपके ड्राइविंग लाइसेंस (DL) की वैधता दिनांक *${data.expiryDate || "निकट"}* को समाप्त हो रही है (${data.daysLeft !== undefined ? (data.daysLeft <= 0 ? "समाप्त हो चुकी है" : `${data.daysLeft} दिन शेष`) : ""})।\n\n` +
+    `असुविधा व भारी चालान से बचने हेतु समय पर नवीनीकरण करवाएं।\n` +
+    (data.dueAmount > 0 ? `बकाया शुल्क: ₹${data.dueAmount}\n\n` : `\n`) +
+    `संपर्क करें: गुरूकृपा यातायात`,
 
   payment_due: (data) =>
     `नमस्ते ${data.customerName || "ग्राहक"},\n\n` +
@@ -225,7 +241,76 @@ export const scanUpcomingReminders = (daysThreshold = 7) => {
     }
   });
 
-  // 3. Payment dues
+  // 3. Fitness expiries
+  (data.fitness || []).forEach((fit) => {
+    if (!fit.expiryDate) return;
+    const exp = new Date(fit.expiryDate);
+    exp.setHours(0, 0, 0, 0);
+    const diffTime = exp.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays <= daysThreshold && diffDays >= -15) {
+      const msg = templates.fitness_renewal({
+        customerName: fit.customerName,
+        vehicleReg: fit.vehicleReg,
+        expiryDate: fit.expiryDate,
+        daysLeft: diffDays,
+        dueAmount: fit.dueAmount || 0
+      });
+
+      candidates.push({
+        id: `CAND-FIT-${fit.id}`,
+        referenceId: fit.id,
+        type: "fitness_renewal",
+        category: "Fitness",
+        customerName: fit.customerName,
+        customerPhone: fit.customerPhone,
+        vehicleReg: fit.vehicleReg,
+        expiryDate: fit.expiryDate,
+        daysLeft: diffDays,
+        dueAmount: fit.dueAmount || 0,
+        message: msg,
+        waLink: generateWaLink(fit.customerPhone, msg),
+        urgency: diffDays <= 0 ? "expired" : diffDays <= 3 ? "critical" : "upcoming"
+      });
+    }
+  });
+
+  // 4. Driving Licence expiries
+  (data.drivingLicences || []).forEach((dl) => {
+    if (!dl.expiryDate) return;
+    const exp = new Date(dl.expiryDate);
+    exp.setHours(0, 0, 0, 0);
+    const diffTime = exp.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays <= daysThreshold && diffDays >= -15) {
+      const msg = templates.dl_renewal({
+        customerName: dl.customerName,
+        expiryDate: dl.expiryDate,
+        daysLeft: diffDays,
+        dueAmount: dl.dueAmount || 0
+      });
+
+      candidates.push({
+        id: `CAND-DL-${dl.id}`,
+        referenceId: dl.id,
+        type: "dl_renewal",
+        category: "Driving Licence",
+        customerName: dl.customerName,
+        customerPhone: dl.customerPhone,
+        vehicleReg: "-",
+        expiryDate: dl.expiryDate,
+        daysLeft: diffDays,
+        dueAmount: dl.dueAmount || 0,
+        message: msg,
+        waLink: generateWaLink(dl.customerPhone, msg),
+        urgency: diffDays <= 0 ? "expired" : diffDays <= 3 ? "critical" : "upcoming"
+      });
+    }
+  });
+
+  // 5. Payment dues
   (data.customers || []).forEach((cust) => {
     if ((cust.dueAmount || 0) > 0) {
       const msg = templates.payment_due({

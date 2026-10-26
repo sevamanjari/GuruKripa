@@ -30,6 +30,27 @@ import {
   renewPermit
 } from "../controllers/permitController.js";
 import {
+  getFitnessList,
+  getFitnessById,
+  createFitness,
+  updateFitness,
+  deleteFitness,
+  renewFitness
+} from "../controllers/fitnessController.js";
+import {
+  getDrivingLicences,
+  getDrivingLicenceById,
+  createDrivingLicence,
+  updateDrivingLicence,
+  deleteDrivingLicence,
+  renewDrivingLicence
+} from "../controllers/drivingLicenceController.js";
+import {
+  uploadDocument,
+  viewDocument,
+  decompressPayload
+} from "../controllers/uploadController.js";
+import {
   getDashboardStats,
   getRtoServices,
   resetApplicationData
@@ -116,6 +137,27 @@ router.post("/permits", authenticateToken, createPermit);
 router.put("/permits/:id", authenticateToken, updatePermit);
 router.delete("/permits/:id", authenticateToken, deletePermit);
 router.post("/permits/:id/renew", authenticateToken, renewPermit);
+
+// Vehicle Fitness Certificates CRUD + Renew
+router.get("/fitness", authenticateToken, getFitnessList);
+router.get("/fitness/:id", authenticateToken, getFitnessById);
+router.post("/fitness", authenticateToken, createFitness);
+router.put("/fitness/:id", authenticateToken, updateFitness);
+router.delete("/fitness/:id", authenticateToken, deleteFitness);
+router.post("/fitness/:id/renew", authenticateToken, renewFitness);
+
+// Driving Licences CRUD + Renew
+router.get("/driving-licences", authenticateToken, getDrivingLicences);
+router.get("/driving-licences/:id", authenticateToken, getDrivingLicenceById);
+router.post("/driving-licences", authenticateToken, createDrivingLicence);
+router.put("/driving-licences/:id", authenticateToken, updateDrivingLicence);
+router.delete("/driving-licences/:id", authenticateToken, deleteDrivingLicence);
+router.post("/driving-licences/:id/renew", authenticateToken, renewDrivingLicence);
+
+// Document & PDF Upload & Decompression
+router.post("/upload", authenticateToken, uploadDocument);
+router.get("/upload/view", viewDocument);
+router.post("/upload/decompress", authenticateToken, decompressPayload);
 
 // ==========================================
 // 3. WHATSAPP AUTOMATED REMINDERS

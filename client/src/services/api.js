@@ -165,6 +165,64 @@ export const startClientKeepAlive = () => {
   return () => clearInterval(intervalId);
 };
 
+/**
+ * Automatically Decompresses Gzip-compressed Document URLs
+ * - If the document starts with "gz:", it uses the browser's native DecompressionStream('gzip')
+ *   to decompress the payload in memory into a temporary Blob URL in milliseconds.
+ * - If client decompression fails, falls back to server decompression /api/upload/view.
+ */
+export async function resolveDocumentToViewableUrl(docUrl) {
+  if (!docUrl) return "";
+  if (typeof docUrl !== "string") return docUrl;
+
+  if (docUrl.startsWith("gz:")) {
+    const rawDataUrl = docUrl.slice(3); // strip "gz:"
+    const b64Idx = rawDataUrl.indexOf("base64,");
+    if (b64Idx !== -1) {
+      const mimeMatches = rawDataUrl.match(/^data:([A-Za-z-+\/]+);base64,/);
+      const mimeType = mimeMatches ? mimeMatches[1] : "application/pdf";
+      const b64 = rawDataUrl.slice(b64Idx + 7);
+
+      try {
+        if (typeof window !== "undefined" && typeof window.DecompressionStream !== "undefined") {
+          const binaryString = atob(b64);
+          const bytes = new Uint8Array(binaryString.length);
+          for (let i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+          }
+          const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream("gzip"));
+          const decompressedBlob = await new Response(stream).blob();
+          return URL.createObjectURL(new Blob([decompressedBlob], { type: mimeType }));
+        }
+      } catch (clientErr) {
+        console.warn("Client DecompressionStream fallback to server view:", clientErr);
+      }
+    }
+
+    const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+    return `${baseUrl}/upload/view?doc=${encodeURIComponent(docUrl)}`;
+  }
+
+  return docUrl;
+}
+
+/**
+ * Downloads document cleanly after decompression
+ */
+export async function downloadDocument(docUrl, fallbackName = "document.pdf") {
+  try {
+    const url = await resolveDocumentToViewableUrl(docUrl);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = fallbackName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  } catch (err) {
+    console.error("Failed to download document:", err);
+  }
+}
+
 export const api = {
   // Authentication
   login: async (username, password) => {
@@ -236,6 +294,60 @@ export const api = {
   updatePermit: (id, data) => request(`/permits/${id}`, { method: "PUT", body: JSON.stringify(data) }),
   deletePermit: (id) => request(`/permits/${id}`, { method: "DELETE" }),
   renewPermit: (id, data) => request(`/permits/${id}/renew`, { method: "POST", body: JSON.stringify(data) }),
+
+  // Fitness Certificates
+  getFitness: (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return request(`/fitness${query ? `?${query}` : ""}`);
+  },
+  getFitnessById: (id) => request(`/fitness/${id}`),
+  createFitness: (data) => request("/fitness", { method: "POST", body: JSON.stringify(data) }),
+  updateFitness: (id, data) => request(`/fitness/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+  deleteFitness: (id) => request(`/fitness/${id}`, { method: "DELETE" }),
+  renewFitness: (id, data) => request(`/fitness/${id}/renew`, { method: "POST", body: JSON.stringify(data) }),
+
+  // Driving Licences
+  getDrivingLicences: (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return request(`/driving-licences${query ? `?${query}` : ""}`);
+  },
+  getDrivingLicenceById: (id) => request(`/driving-licences/${id}`),
+  createDrivingLicence: (data) => request("/driving-licences", { method: "POST", body: JSON.stringify(data) }),
+  updateDrivingLicence: (id, data) => request(`/driving-licences/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+  deleteDrivingLicence: (id) => request(`/driving-licences/${id}`, { method: "DELETE" }),
+  renewDrivingLicence: (id, data) => request(`/driving-licences/${id}/renew`, { method: "POST", body: JSON.stringify(data) }),
+
+  // Upload Document (PDF / Image)
+  uploadDocument: async (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = async () => {
+        try {
+          const base64Data = reader.result;
+          const res = await request("/upload", {
+            method: "POST",
+            body: JSON.stringify({
+              filename: file.name,
+              base64Data,
+              fileType: file.type
+            })
+          });
+          resolve(res.data);
+        } catch {
+          // If server upload route fails or offline, use data URL as robust fallback
+          resolve({
+            url: reader.result,
+            name: file.name,
+            size: file.size,
+            uploadedAt: new Date().toISOString()
+          });
+        }
+      };
+      reader.onerror = (err) => reject(err);
+      reader.readAsDataURL(file);
+    });
+  },
+  decompressDocument: (doc) => request("/upload/decompress", { method: "POST", body: JSON.stringify({ doc }) }),
 
   // WhatsApp Automated Reminders
   getReminderStatus: () => request("/reminders/status"),

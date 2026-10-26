@@ -28,3 +28,8 @@ yarn-error.log*
 *.sln
 *.sw?
 .DS_Store
+
+# Uploads
+server/uploads/*
+!server/uploads/.gitkeep
+uploads/

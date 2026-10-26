@@ -24,6 +24,10 @@ const insuranceSchema = new mongoose.Schema(
       default: "Due"
     },
     ncbPercentage: { type: Number, default: 0 },
+    documentUrl: { type: String, default: "" },
+    documentName: { type: String, default: "" },
+    documentSize: { type: Number, default: 0 },
+    uploadedAt: { type: String, default: "" },
     status: { type: String, default: "Active" },
     notes: { type: String, default: "" },
     renewalHistory: { type: Array, default: [] }
