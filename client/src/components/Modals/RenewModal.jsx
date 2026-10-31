@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { X, RotateCw, CheckCircle2, IndianRupee, Upload, FileText, Trash2 } from "lucide-react";
+import IndianDateInput from "../Common/IndianDateInput.jsx";
+import { formatToIndianDate } from "../../utils/dateFormatter.js";
 import { api } from "../../services/api.js";
 
 export default function RenewModal({ isOpen, onClose, onConfirm, item, type = "insurance" }) {
@@ -176,16 +178,14 @@ export default function RenewModal({ isOpen, onClose, onConfirm, item, type = "i
                 {item.customerName || "Customer"} {item.customerPhone ? `(${item.customerPhone})` : ""}
               </div>
               <div style={{ fontSize: "0.78rem", color: "var(--text-secondary)" }}>
-                Current Expiry: <span style={{ fontWeight: 600 }}>{item.expiryDate}</span>
+                Current Expiry: <span style={{ fontWeight: 600 }}>{formatToIndianDate(item.expiryDate)}</span>
               </div>
             </div>
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginTop: "12px" }}>
               <div className="form-group">
-                <label className="form-label">New Expiry Date *</label>
-                <input
-                  type="date"
-                  className="form-input"
+                <label className="form-label">New Expiry Date (DD/MM/YYYY) *</label>
+                <IndianDateInput
                   required
                   value={formData.newExpiry}
                   onChange={(e) => setFormData({ ...formData, newExpiry: e.target.value })}

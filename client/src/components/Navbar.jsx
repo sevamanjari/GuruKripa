@@ -46,9 +46,14 @@ export default function Navbar({
               <span className="brand-name">
                 GuruKripa Yatayat
               </span>
-              <span className="brand-badge-tag">
-                RTO Operations
-              </span>
+              <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                <span className="brand-badge-tag">
+                  RTO Operations
+                </span>
+                <span style={{ fontSize: "0.68rem", color: "var(--text-muted)", fontWeight: 500 }}>
+                  by SevaManjari Labs
+                </span>
+              </div>
             </div>
           </div>
 

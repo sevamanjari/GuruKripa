@@ -1,9 +1,10 @@
 import { loadData, saveData } from "../data/dataStore.js";
+import { normalizeDateToISO } from "../utils/dateNormalizer.js";
 
 const computePermitStatus = (expiryDate) => {
   if (!expiryDate) return "Active";
   const now = new Date();
-  const expiry = new Date(expiryDate);
+  const expiry = new Date(normalizeDateToISO(expiryDate));
   const diffDays = Math.ceil((expiry - now) / (1000 * 60 * 60 * 24));
 
   if (diffDays < 0) return "Expired";
@@ -175,7 +176,10 @@ export const createPermit = (req, res) => {
     } = req.body;
 
     const effVehicleId = vehicleId || req.body.vehicleReg;
-    if (!effVehicleId || !expiryDate) {
+    const normalizedExpiry = normalizeDateToISO(expiryDate);
+    const normalizedIssue = issueDate ? normalizeDateToISO(issueDate) : new Date().toISOString().split("T")[0];
+
+    if (!effVehicleId || !normalizedExpiry) {
       return res.status(400).json({
         success: false,
         error: "Vehicle number and Expiry Date are required."
@@ -190,7 +194,7 @@ export const createPermit = (req, res) => {
     const customer = linkOrCreateCustomer(data, cleanPhone, cleanName);
 
     const newId = `PERM-${Date.now().toString().slice(-4)}`;
-    const status = computePermitStatus(expiryDate);
+    const status = computePermitStatus(normalizedExpiry);
 
     const total = Number(totalAmount !== undefined ? totalAmount : authFeePaid) || 0;
     const paid = Number(paidAmount) || 0;
@@ -207,8 +211,8 @@ export const createPermit = (req, res) => {
       customerName: cleanName || (customer ? customer.name : "Customer"),
       customerPhone: cleanPhone,
       permitType: (permitType || "State Goods Permit").trim(),
-      issueDate: issueDate || new Date().toISOString().split("T")[0],
-      expiryDate,
+      issueDate: normalizedIssue,
+      expiryDate: normalizedExpiry,
       issuingRto: assignedRto,
       rtoAffiliated: assignedRto,
       authorizedStates: authorizedStates || "All India (National Permit)",
@@ -261,13 +265,19 @@ export const updatePermit = (req, res) => {
     const paid = Number(req.body.paidAmount !== undefined ? req.body.paidAmount : (current.paidAmount || 0)) || 0;
     const payment = computePayment(total, paid);
 
-    const expiry = req.body.expiryDate || current.expiryDate;
+    const rawExpiry = req.body.expiryDate || current.expiryDate;
+    const expiry = normalizeDateToISO(rawExpiry);
     const updatedStatus = computePermitStatus(expiry);
     const assignedRto = req.body.rtoAffiliated || req.body.issuingRto || current.rtoAffiliated || current.issuingRto;
+
+    if (req.body.issueDate) {
+      req.body.issueDate = normalizeDateToISO(req.body.issueDate);
+    }
 
     const updated = {
       ...current,
       ...req.body,
+      expiryDate: expiry,
       customerId: customer ? customer.id : current.customerId,
       customerName: cleanName || (customer ? customer.name : current.customerName),
       customerPhone: cleanPhone,
@@ -366,10 +376,12 @@ export const renewPermit = (req, res) => {
     const paid = newPaidAmount !== undefined ? Number(newPaidAmount) : total;
     const payment = computePayment(total, paid);
 
+    const targetExpiry = newExpiryDate ? normalizeDateToISO(newExpiryDate) : calculatedExpiry;
     const renewed = {
       ...current,
       permitNumber: newPermitNumber || `${current.permitNumber}-RNW`,
-      expiryDate: newExpiryDate || calculatedExpiry,
+      expiryDate: targetExpiry,
+      status: computePermitStatus(targetExpiry),
       authFeePaid: total,
       totalAmount: payment.totalAmount,
       paidAmount: payment.paidAmount,

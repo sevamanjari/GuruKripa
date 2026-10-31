@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { X, Truck, Save } from "lucide-react";
 import CustomerAutoFetchField from "../CustomerAutoFetchField.jsx";
+import IndianDateInput from "../Common/IndianDateInput.jsx";
 
 export default function VehicleModal({ isOpen, onClose, onSave, vehicle, customers = [] }) {
   const [formData, setFormData] = useState({
@@ -215,30 +216,24 @@ export default function VehicleModal({ isOpen, onClose, onSave, vehicle, custome
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px" }}>
               <div className="form-group">
-                <label className="form-label">Fitness Expiry *</label>
-                <input
-                  type="date"
-                  className="form-input"
+                <label className="form-label">Fitness Expiry (DD/MM/YYYY) *</label>
+                <IndianDateInput
                   required
                   value={formData.fitnessExpiry}
                   onChange={(e) => setFormData({ ...formData, fitnessExpiry: e.target.value })}
                 />
               </div>
               <div className="form-group">
-                <label className="form-label">Tax Valid Upto *</label>
-                <input
-                  type="date"
-                  className="form-input"
+                <label className="form-label">Tax Valid Upto (DD/MM/YYYY) *</label>
+                <IndianDateInput
                   required
                   value={formData.taxValidUpto}
                   onChange={(e) => setFormData({ ...formData, taxValidUpto: e.target.value })}
                 />
               </div>
               <div className="form-group">
-                <label className="form-label">PUC Expiry</label>
-                <input
-                  type="date"
-                  className="form-input"
+                <label className="form-label">PUC Expiry (DD/MM/YYYY)</label>
+                <IndianDateInput
                   value={formData.pucExpiry}
                   onChange={(e) => setFormData({ ...formData, pucExpiry: e.target.value })}
                 />

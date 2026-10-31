@@ -21,6 +21,7 @@ import {
   ChevronUp
 } from "lucide-react";
 import { api } from "../services/api.js";
+import { formatToIndianDate } from "../utils/dateFormatter.js";
 
 export default function RemindersView({ showToast }) {
   const [configStatus, setConfigStatus] = useState(null);
@@ -659,7 +660,7 @@ export default function RemindersView({ showToast }) {
                       </td>
 
                       <td>
-                        <span style={{ fontSize: "0.82rem" }}>{cand.expiryDate}</span>
+                        <span style={{ fontSize: "0.82rem" }}>{formatToIndianDate(cand.expiryDate)}</span>
                       </td>
 
                       <td>
@@ -846,7 +847,7 @@ export default function RemindersView({ showToast }) {
                   >
                     <div>
                       <div style={{ color: "var(--text-muted)", fontSize: "0.72rem" }}>Expiry / Due</div>
-                      <div style={{ fontWeight: 600 }}>{cand.expiryDate}</div>
+                      <div style={{ fontWeight: 600 }}>{formatToIndianDate(cand.expiryDate)}</div>
                     </div>
                     <div>
                       <div style={{ color: "var(--text-muted)", fontSize: "0.72rem" }}>Pending Amount</div>

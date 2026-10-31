@@ -1,9 +1,10 @@
 import { loadData, saveData } from "../data/dataStore.js";
+import { normalizeDateToISO } from "../utils/dateNormalizer.js";
 
 const computeStatus = (expiryDate) => {
   if (!expiryDate) return "Active";
   const now = new Date();
-  const expiry = new Date(expiryDate);
+  const expiry = new Date(normalizeDateToISO(expiryDate));
   const diffDays = Math.ceil((expiry - now) / (1000 * 60 * 60 * 24));
 
   if (diffDays < 0) return "Expired";
@@ -170,8 +171,11 @@ export const createInsurance = (req, res) => {
     } = req.body;
 
     const effVehicleId = vehicleId || req.body.vehicleReg;
-    const underwriterName = (req.body.underwriter || insuranceCompany || "National Insurance").trim();
-    if (!effVehicleId || !expiryDate) {
+    const underwriterName = (req.body.underwriter || insuranceCompany || "").trim() || "Unspecified";
+    const normalizedExpiry = normalizeDateToISO(expiryDate);
+    const normalizedIssue = issueDate ? normalizeDateToISO(issueDate) : new Date().toISOString().split("T")[0];
+
+    if (!effVehicleId || !normalizedExpiry) {
       return res.status(400).json({
         success: false,
         error: "Vehicle number and Expiry Date are required."
@@ -186,7 +190,7 @@ export const createInsurance = (req, res) => {
     const customer = linkOrCreateCustomer(data, cleanPhone, cleanName);
 
     const newId = `INS-${Date.now().toString().slice(-4)}`;
-    const status = computeStatus(expiryDate);
+    const status = computeStatus(normalizedExpiry);
 
     const total = Number(totalAmount !== undefined ? totalAmount : premiumAmount) || 0;
     const paid = Number(paidAmount) || 0;
@@ -204,8 +208,8 @@ export const createInsurance = (req, res) => {
       insuranceCompany: underwriterName,
       underwriter: underwriterName,
       coverageType: coverageType || "Comprehensive Package",
-      issueDate: issueDate || new Date().toISOString().split("T")[0],
-      expiryDate,
+      issueDate: normalizedIssue,
+      expiryDate: normalizedExpiry,
       idvAmount: Number(idvAmount) || 0,
       premiumAmount: total,
       totalAmount: payment.totalAmount,
@@ -256,10 +260,15 @@ export const updateInsurance = (req, res) => {
     const paid = Number(req.body.paidAmount !== undefined ? req.body.paidAmount : (current.paidAmount || 0)) || 0;
     const payment = computePayment(total, paid);
 
-    const expiry = req.body.expiryDate || current.expiryDate;
+    const rawExpiry = req.body.expiryDate || current.expiryDate;
+    const expiry = normalizeDateToISO(rawExpiry);
     const updatedStatus = computeStatus(expiry);
 
-    const underwriterName = req.body.underwriter || req.body.insuranceCompany || current.underwriter || current.insuranceCompany;
+    if (req.body.issueDate) {
+      req.body.issueDate = normalizeDateToISO(req.body.issueDate);
+    }
+
+    const underwriterName = req.body.underwriter || req.body.insuranceCompany || current.underwriter || current.insuranceCompany || "Unspecified";
 
     const updated = {
       ...current,
@@ -269,6 +278,7 @@ export const updateInsurance = (req, res) => {
       customerPhone: cleanPhone,
       insuranceCompany: underwriterName,
       underwriter: underwriterName,
+      expiryDate: expiry,
       documentUrl: req.body.documentUrl !== undefined ? req.body.documentUrl : current.documentUrl,
       documentName: req.body.documentName !== undefined ? req.body.documentName : current.documentName,
       documentSize: req.body.documentSize !== undefined ? Number(req.body.documentSize) : current.documentSize,
@@ -366,11 +376,13 @@ export const renewInsurance = (req, res) => {
     const paid = newPaidAmount !== undefined ? Number(newPaidAmount) : total;
     const payment = computePayment(total, paid);
 
+    const targetExpiry = req.body.newExpiryDate ? normalizeDateToISO(req.body.newExpiryDate) : newExpiry;
     const renewed = {
       ...current,
       policyNumber: newPolicyNumber || `${current.policyNumber}-RNW`,
       issueDate: startDate,
-      expiryDate: newExpiry,
+      expiryDate: targetExpiry,
+      status: computeStatus(targetExpiry),
       premiumAmount: total,
       totalAmount: payment.totalAmount,
       paidAmount: payment.paidAmount,

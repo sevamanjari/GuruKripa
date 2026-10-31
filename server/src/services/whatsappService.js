@@ -1,6 +1,17 @@
 import ReminderLog from "../models/ReminderLog.js";
 import { loadData } from "../data/dataStore.js";
 import { isDbConnected } from "../config/db.js";
+import { normalizeDateToISO } from "../utils/dateNormalizer.js";
+
+const formatIndianDate = (dateStr) => {
+  if (!dateStr) return "";
+  const iso = normalizeDateToISO(dateStr);
+  if (/^\d{4}-\d{2}-\d{2}/.test(iso)) {
+    const [y, m, d] = iso.split("T")[0].split("-");
+    return `${d}/${m}/${y}`;
+  }
+  return dateStr;
+};
 
 /**
  * Standardize Indian and international phone numbers
@@ -31,7 +42,7 @@ export const getMessageTemplates = () => ({
   insurance_renewal: (data) =>
     `नमस्ते ${data.customerName || "ग्राहक"},\n\n` +
     `गुरूकृपा यातायात (RTO एवं बीमा परामर्श) से सादर प्रणाम। 🙏\n\n` +
-    `आपके वाहन *${data.vehicleReg || "वाहन"}* की बीमा पॉलिसी (*${data.policyNumber || "पॉलिसी"}*) की वैधता *${data.expiryDate || "निकट"}* को समाप्त हो रही है (${data.daysLeft !== undefined ? (data.daysLeft <= 0 ? "आज समाप्त / समाप्त हो चुकी है" : `${data.daysLeft} दिन शेष`) : ""})।\n\n` +
+    `आपके वाहन *${data.vehicleReg || "वाहन"}* की बीमा पॉलिसी (*${data.policyNumber || "पॉलिसी"}*) की वैधता *${formatIndianDate(data.expiryDate) || "निकट"}* को समाप्त हो रही है (${data.daysLeft !== undefined ? (data.daysLeft <= 0 ? "आज समाप्त / समाप्त हो चुकी है" : `${data.daysLeft} दिन शेष`) : ""})।\n\n` +
     `बिना विलंब नवीनीकरण (Renew) करवाएं ताकि सड़क पर भारी चालान व दुर्घटना कवरेज का नुकसान न हो।\n` +
     (data.dueAmount > 0 ? `बकाया राशि: ₹${data.dueAmount}\n\n` : `\n`) +
     `सहायता एवं तुरंत पॉलिसी हेतु संपर्क करें:\n` +
@@ -40,7 +51,7 @@ export const getMessageTemplates = () => ({
   permit_renewal: (data) =>
     `नमस्ते ${data.customerName || "ग्राहक"},\n\n` +
     `गुरूकृपा यातायात की ओर से सूचना। 🙏\n\n` +
-    `आपके वाहन *${data.vehicleReg || "वाहन"}* के परमिट की वैधता दिनांक *${data.expiryDate || "निकट"}* को समाप्त हो रही है।\n\n` +
+    `आपके वाहन *${data.vehicleReg || "वाहन"}* के परमिट की वैधता दिनांक *${formatIndianDate(data.expiryDate) || "निकट"}* को समाप्त हो रही है।\n\n` +
     `समय से पूर्व नवीनीकरण करवाकर RTO पेनाल्टी से बचें।\n` +
     (data.dueAmount > 0 ? `बकाया शुल्क: ₹${data.dueAmount}\n\n` : `\n`) +
     `संपर्क करें: गुरूकृपा यातायात कार्यालय`,
@@ -48,7 +59,7 @@ export const getMessageTemplates = () => ({
   fitness_renewal: (data) =>
     `नमस्ते ${data.customerName || "ग्राहक"},\n\n` +
     `गुरूकृपा यातायात की ओर से फिटनेस सूचना। 🙏\n\n` +
-    `आपके वाहन *${data.vehicleReg || "वाहन"}* के फिटनेस सर्टिफिकेट की वैधता दिनांक *${data.expiryDate || "निकट"}* को समाप्त हो रही है (${data.daysLeft !== undefined ? (data.daysLeft <= 0 ? "समाप्त हो चुकी है" : `${data.daysLeft} दिन शेष`) : ""})।\n\n` +
+    `आपके वाहन *${data.vehicleReg || "वाहन"}* के फिटनेस सर्टिफिकेट की वैधता दिनांक *${formatIndianDate(data.expiryDate) || "निकट"}* को समाप्त हो रही है (${data.daysLeft !== undefined ? (data.daysLeft <= 0 ? "समाप्त हो चुकी है" : `${data.daysLeft} दिन शेष`) : ""})।\n\n` +
     `RTO चालान से बचने हेतु तुरंत फिटनेस रिन्यू करवाएं।\n` +
     (data.dueAmount > 0 ? `बकाया शुल्क: ₹${data.dueAmount}\n\n` : `\n`) +
     `संपर्क करें: गुरूकृपा यातायात`,
@@ -56,7 +67,7 @@ export const getMessageTemplates = () => ({
   dl_renewal: (data) =>
     `नमस्ते ${data.customerName || "ग्राहक"},\n\n` +
     `गुरूकृपा यातायात सेवा केन्द्र से सूचना। 🙏\n\n` +
-    `आपके ड्राइविंग लाइसेंस (DL) की वैधता दिनांक *${data.expiryDate || "निकट"}* को समाप्त हो रही है (${data.daysLeft !== undefined ? (data.daysLeft <= 0 ? "समाप्त हो चुकी है" : `${data.daysLeft} दिन शेष`) : ""})।\n\n` +
+    `आपके ड्राइविंग लाइसेंस (DL) की वैधता दिनांक *${formatIndianDate(data.expiryDate) || "निकट"}* को समाप्त हो रही है (${data.daysLeft !== undefined ? (data.daysLeft <= 0 ? "समाप्त हो चुकी है" : `${data.daysLeft} दिन शेष`) : ""})।\n\n` +
     `असुविधा व भारी चालान से बचने हेतु समय पर नवीनीकरण करवाएं।\n` +
     (data.dueAmount > 0 ? `बकाया शुल्क: ₹${data.dueAmount}\n\n` : `\n`) +
     `संपर्क करें: गुरूकृपा यातायात`,
@@ -168,7 +179,7 @@ export const scanUpcomingReminders = (daysThreshold = 7) => {
   // 1. Insurance expiries
   (data.insurances || []).forEach((ins) => {
     if (!ins.expiryDate) return;
-    const exp = new Date(ins.expiryDate);
+    const exp = new Date(normalizeDateToISO(ins.expiryDate));
     exp.setHours(0, 0, 0, 0);
     const diffTime = exp.getTime() - today.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -207,7 +218,7 @@ export const scanUpcomingReminders = (daysThreshold = 7) => {
   // 2. Permit expiries
   (data.permits || []).forEach((pmt) => {
     if (!pmt.expiryDate) return;
-    const exp = new Date(pmt.expiryDate);
+    const exp = new Date(normalizeDateToISO(pmt.expiryDate));
     exp.setHours(0, 0, 0, 0);
     const diffTime = exp.getTime() - today.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -244,7 +255,7 @@ export const scanUpcomingReminders = (daysThreshold = 7) => {
   // 3. Fitness expiries
   (data.fitness || []).forEach((fit) => {
     if (!fit.expiryDate) return;
-    const exp = new Date(fit.expiryDate);
+    const exp = new Date(normalizeDateToISO(fit.expiryDate));
     exp.setHours(0, 0, 0, 0);
     const diffTime = exp.getTime() - today.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -279,7 +290,7 @@ export const scanUpcomingReminders = (daysThreshold = 7) => {
   // 4. Driving Licence expiries
   (data.drivingLicences || []).forEach((dl) => {
     if (!dl.expiryDate) return;
-    const exp = new Date(dl.expiryDate);
+    const exp = new Date(normalizeDateToISO(dl.expiryDate));
     exp.setHours(0, 0, 0, 0);
     const diffTime = exp.getTime() - today.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));

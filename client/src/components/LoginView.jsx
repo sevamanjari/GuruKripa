@@ -198,7 +198,7 @@ export default function LoginView({ onLoginSuccess }) {
           </form>
         </div>
 
-        {/* Security Notice */}
+        {/* Security Notice & SevaManjari Labs Branding */}
         <div
           style={{
             marginTop: "16px",
@@ -208,6 +208,28 @@ export default function LoginView({ onLoginSuccess }) {
           }}
         >
           Protected by HMAC Session Tokens • Strict CORS & Clickjacking Defense Active
+        </div>
+
+        {/* Developer Attribution */}
+        <div
+          style={{
+            marginTop: "20px",
+            textAlign: "center",
+            padding: "12px",
+            borderRadius: "8px",
+            background: "rgba(30, 58, 138, 0.04)",
+            border: "1px solid rgba(30, 58, 138, 0.08)"
+          }}
+        >
+          <div style={{ fontSize: "0.78rem", color: "var(--text-secondary)" }}>
+            Platform Developed & Maintained by
+          </div>
+          <div style={{ fontSize: "0.85rem", fontWeight: 700, color: "var(--brand-primary, #1e3a8a)", marginTop: "2px" }}>
+            SevaManjari Labs Private Limited
+          </div>
+          <div style={{ fontSize: "0.7rem", color: "var(--text-light)", marginTop: "2px" }}>
+            Enterprise Transport & RTO Operations Management Suite
+          </div>
         </div>
       </div>
     </div>

@@ -84,6 +84,7 @@ router.get("/health", (req, res) => {
   res.json({
     status: "ok",
     app: "GuruKripa Yatayat RTO Portal",
+    developer: "SevaManjari Labs Private Limited",
     database: isDbConnected() ? "MongoDB Atlas (Online)" : "Fallback JSON Datastore (Local)",
     timestamp: new Date().toISOString()
   });

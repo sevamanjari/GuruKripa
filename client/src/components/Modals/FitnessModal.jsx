@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { X, Activity, IndianRupee, CheckCircle2, AlertCircle, Upload, Trash2, Calendar, FileText } from "lucide-react";
 import CustomerAutoFetchField from "../CustomerAutoFetchField.jsx";
+import IndianDateInput from "../Common/IndianDateInput.jsx";
+import { parseIndianDateToISO } from "../../utils/dateFormatter.js";
 import { api } from "../../services/api.js";
 
 const DEFAULT_RTOS = [
@@ -151,7 +153,12 @@ export default function FitnessModal({ isOpen, onClose, onSave, fitness, custome
   };
 
   const handleAddYear = () => {
-    const base = formData.expiryDate ? new Date(formData.expiryDate) : new Date();
+    let base = new Date();
+    if (formData.expiryDate) {
+      const iso = parseIndianDateToISO(formData.expiryDate);
+      const parsed = new Date(iso);
+      if (!isNaN(parsed)) base = parsed;
+    }
     base.setFullYear(base.getFullYear() + 1);
     setFormData((prev) => ({ ...prev, expiryDate: base.toISOString().split("T")[0] }));
   };
@@ -371,7 +378,7 @@ export default function FitnessModal({ isOpen, onClose, onSave, fitness, custome
           <div style={{ marginBottom: "14px" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "5px" }}>
               <label style={{ fontSize: "0.8rem", fontWeight: 600 }}>
-                Expire Date <span style={{ color: "#ef4444" }}>*</span>
+                Expire Date (DD/MM/YYYY) <span style={{ color: "#ef4444" }}>*</span>
               </label>
               <button
                 type="button"
@@ -388,18 +395,10 @@ export default function FitnessModal({ isOpen, onClose, onSave, fitness, custome
                 +1 Year from current
               </button>
             </div>
-            <input
-              type="date"
+            <IndianDateInput
               value={formData.expiryDate}
               onChange={(e) => setFormData((prev) => ({ ...prev, expiryDate: e.target.value }))}
               required
-              style={{
-                width: "100%",
-                padding: "9px 12px",
-                borderRadius: "8px",
-                border: "1px solid var(--border-default, #cbd5e1)",
-                fontSize: "0.9rem"
-              }}
             />
           </div>
 

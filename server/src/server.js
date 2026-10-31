@@ -84,7 +84,8 @@ app.get("/", (req, res) => {
   res.json({
     message: "Welcome to GuruKripa API Server",
     documentation: "/api/health",
-    healthCheck: "/api/health"
+    healthCheck: "/api/health",
+    developer: "SevaManjari Labs Private Limited"
   });
 });
 

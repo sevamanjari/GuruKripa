@@ -614,17 +614,34 @@ export default function App() {
         style={{
           borderTop: "1px solid var(--border-default)",
           background: "#ffffff",
-          padding: "16px 24px",
+          padding: "18px 24px",
           fontSize: "0.82rem",
           color: "var(--text-muted)"
         }}
       >
-        <div style={{ maxWidth: "1280px", margin: "0 auto", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px" }}>
-          <div>
-            <span style={{ fontWeight: 700, color: "var(--text-primary)" }}>GuruKripa Yatayat</span> • Transport & RTO Operations Management
+        <div style={{ maxWidth: "1280px", margin: "0 auto", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+            <span style={{ fontWeight: 700, color: "var(--text-primary)" }}>GuruKripa Yatayat</span>
+            <span style={{ color: "var(--border-default)" }}>•</span>
+            <span>Commercial Fleet, Insurance & RTO Operations</span>
           </div>
-          <div>
-            Authenticated Session Active • Proactive DL, Fitness, Vehicle Insurance, and Permit Tracking
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+            <span>Developed & Engineered by</span>
+            <strong style={{ color: "var(--brand-primary, #1e3a8a)" }}>
+              SevaManjari Labs Private Limited
+            </strong>
+            <span
+              style={{
+                fontSize: "0.72rem",
+                background: "rgba(30, 58, 138, 0.08)",
+                color: "var(--brand-primary, #1e3a8a)",
+                padding: "2px 8px",
+                borderRadius: "12px",
+                fontWeight: 600
+              }}
+            >
+              Enterprise
+            </span>
           </div>
         </div>
       </footer>

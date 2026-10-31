@@ -12,6 +12,7 @@ import {
   IndianRupee,
   Calendar
 } from "lucide-react";
+import { formatToIndianDate } from "../../utils/dateFormatter.js";
 
 export default function InsightsReportModal({
   isOpen,
@@ -137,9 +138,14 @@ export default function InsightsReportModal({
             }}
           >
             <div>
-              <h2 style={{ fontSize: "1.35rem", fontWeight: 800, color: "#0f172a", margin: 0 }}>
-                GURUKRIPA YATAYAT
-              </h2>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                <h2 style={{ fontSize: "1.35rem", fontWeight: 800, color: "#0f172a", margin: 0 }}>
+                  GURUKRIPA YATAYAT
+                </h2>
+                <span style={{ fontSize: "0.72rem", background: "rgba(30, 58, 138, 0.08)", color: "var(--brand-primary, #1e3a8a)", padding: "2px 8px", borderRadius: "10px", fontWeight: 700 }}>
+                  Developed by SevaManjari Labs
+                </span>
+              </div>
               <p style={{ fontSize: "0.82rem", color: "#64748b", marginTop: "2px" }}>
                 Commercial Transport Agency, National Permits & Vehicle Insurance Operations
               </p>
@@ -347,7 +353,7 @@ export default function InsightsReportModal({
                       <td>{item.ref}</td>
                       <td>{item.customer}</td>
                       <td>{item.phone}</td>
-                      <td>{item.date}</td>
+                      <td>{formatToIndianDate(item.date)}</td>
                       <td style={{ color: item.daysLeft < 0 ? "#dc2626" : "#d97706", fontWeight: 700 }}>
                         {item.daysLeft < 0 ? "Expired" : `${item.daysLeft} days`}
                       </td>
@@ -372,8 +378,8 @@ export default function InsightsReportModal({
             }}
           >
             <div>
-              <div>GuruKripa Transport Office Operations</div>
-              <div>System Auto-Generated Audit Sheet</div>
+              <div style={{ fontWeight: 600, color: "#1e293b" }}>GuruKripa Transport Office Operations</div>
+              <div>System Auto-Generated Audit Sheet • Enterprise Solution by <strong style={{ color: "var(--brand-primary, #1e3a8a)" }}>SevaManjari Labs Private Limited</strong></div>
             </div>
             <div style={{ textAlign: "center" }}>
               <div style={{ width: "180px", borderBottom: "1px solid #94a3b8", marginBottom: "4px" }} />

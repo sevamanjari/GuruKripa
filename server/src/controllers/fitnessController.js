@@ -1,9 +1,10 @@
 import { loadData, saveData } from "../data/dataStore.js";
+import { normalizeDateToISO } from "../utils/dateNormalizer.js";
 
 const computeStatus = (expiryDate) => {
   if (!expiryDate) return "Active";
   const now = new Date();
-  const expiry = new Date(expiryDate);
+  const expiry = new Date(normalizeDateToISO(expiryDate));
   const diffDays = Math.ceil((expiry - now) / (1000 * 60 * 60 * 24));
 
   if (diffDays < 0) return "Expired";
@@ -166,7 +167,10 @@ export const createFitness = (req, res) => {
       notes
     } = req.body;
 
-    if (!vehicleReg || !expiryDate) {
+    const normalizedExpiry = normalizeDateToISO(expiryDate);
+    const normalizedIssue = issueDate ? normalizeDateToISO(issueDate) : new Date().toISOString().split("T")[0];
+
+    if (!vehicleReg || !normalizedExpiry) {
       return res.status(400).json({
         success: false,
         error: "Vehicle number and Expiry Date are required."
@@ -181,7 +185,7 @@ export const createFitness = (req, res) => {
     const customer = linkOrCreateCustomer(data, cleanPhone, cleanName);
 
     const newId = `FIT-${Date.now().toString().slice(-4)}`;
-    const status = computeStatus(expiryDate);
+    const status = computeStatus(normalizedExpiry);
     const payment = computePayment(totalAmount, paidAmount);
 
     const newFitness = {
@@ -192,8 +196,8 @@ export const createFitness = (req, res) => {
       customerName: cleanName || (customer ? customer.name : "Customer"),
       customerPhone: cleanPhone,
       rtoAffiliated: (rtoAffiliated || "RTO Indore (MP-09)").trim(),
-      issueDate: issueDate || new Date().toISOString().split("T")[0],
-      expiryDate,
+      issueDate: normalizedIssue,
+      expiryDate: normalizedExpiry,
       documentUrl: documentUrl || "",
       documentName: documentName || "",
       documentSize: Number(documentSize) || 0,
@@ -241,12 +245,18 @@ export const updateFitness = (req, res) => {
     const paid = req.body.paidAmount !== undefined ? req.body.paidAmount : current.paidAmount;
     const payment = computePayment(total, paid);
 
-    const expiry = req.body.expiryDate || current.expiryDate;
+    const rawExpiry = req.body.expiryDate || current.expiryDate;
+    const expiry = normalizeDateToISO(rawExpiry);
     const updatedStatus = computeStatus(expiry);
+
+    if (req.body.issueDate) {
+      req.body.issueDate = normalizeDateToISO(req.body.issueDate);
+    }
 
     const updated = {
       ...current,
       ...req.body,
+      expiryDate: expiry,
       customerId: customer ? customer.id : current.customerId,
       customerName: cleanName || (customer ? customer.name : current.customerName),
       customerPhone: cleanPhone,
@@ -311,7 +321,7 @@ export const renewFitness = (req, res) => {
 
     const current = data.fitness[idx];
 
-    let newExpiry = newExpiryDate;
+    let newExpiry = newExpiryDate ? normalizeDateToISO(newExpiryDate) : "";
     if (!newExpiry) {
       const baseDate = new Date(current.expiryDate) > new Date() ? new Date(current.expiryDate) : new Date();
       const nextYear = new Date(baseDate);

@@ -24,6 +24,7 @@ import {
 import HistoryModal from "./Modals/HistoryModal.jsx";
 import PdfViewerModal from "./Modals/PdfViewerModal.jsx";
 import { downloadDocument } from "../services/api.js";
+import { formatToIndianDate } from "../utils/dateFormatter.js";
 
 export default function DrivingLicenceView({
   drivingLicences = [],
@@ -469,7 +470,7 @@ export default function DrivingLicenceView({
                       {/* Expiry Date */}
                       <td>
                         <div style={{ fontWeight: 600, fontSize: "0.85rem", color: "var(--text-primary)" }}>
-                          {dl.expiryDate}
+                          {formatToIndianDate(dl.expiryDate)}
                         </div>
                         <span
                           style={{

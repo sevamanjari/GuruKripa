@@ -24,6 +24,7 @@ import {
 import HistoryModal from "./Modals/HistoryModal.jsx";
 import PdfViewerModal from "./Modals/PdfViewerModal.jsx";
 import { downloadDocument } from "../services/api.js";
+import { formatToIndianDate } from "../utils/dateFormatter.js";
 
 export default function FitnessView({
   fitnessList = [],
@@ -442,7 +443,7 @@ export default function FitnessView({
                       {/* Expiry Date */}
                       <td>
                         <div style={{ fontWeight: 600, fontSize: "0.85rem", color: "var(--text-primary)" }}>
-                          {fit.expiryDate}
+                          {formatToIndianDate(fit.expiryDate)}
                         </div>
                         <span
                           style={{

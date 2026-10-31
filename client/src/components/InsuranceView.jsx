@@ -22,6 +22,7 @@ import {
 import HistoryModal from "./Modals/HistoryModal.jsx";
 import PdfViewerModal from "./Modals/PdfViewerModal.jsx";
 import { downloadDocument } from "../services/api.js";
+import { formatToIndianDate } from "../utils/dateFormatter.js";
 
 export default function InsuranceView({
   insurances = [],
@@ -409,7 +410,7 @@ export default function InsuranceView({
                       <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                         <Building2 size={14} color="#64748b" />
                         <span style={{ fontSize: "0.84rem", fontWeight: 600, color: "var(--text-secondary)" }}>
-                          {ins.underwriter || ins.insuranceCompany || "National Insurance"}
+                          {ins.underwriter || ins.insuranceCompany || "—"}
                         </span>
                       </div>
                     </td>
@@ -417,7 +418,7 @@ export default function InsuranceView({
                     {/* Expiry Date */}
                     <td>
                       <div style={{ fontWeight: 600, fontSize: "0.85rem", color: "var(--text-primary)" }}>
-                        {ins.expiryDate}
+                        {formatToIndianDate(ins.expiryDate)}
                       </div>
                       <span
                         style={{

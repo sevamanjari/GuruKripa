@@ -1,21 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { X, Shield, IndianRupee, CheckCircle2, AlertCircle, Upload, FileText, Trash2, Calendar } from "lucide-react";
 import CustomerAutoFetchField from "../CustomerAutoFetchField.jsx";
+import IndianDateInput from "../Common/IndianDateInput.jsx";
+import { parseIndianDateToISO } from "../../utils/dateFormatter.js";
 import { api } from "../../services/api.js";
-
-const POPULAR_UNDERWRITERS = [
-  "National Insurance",
-  "The New India Assurance",
-  "United India Insurance",
-  "Oriental Insurance",
-  "ICICI Lombard",
-  "HDFC ERGO",
-  "Bajaj Allianz",
-  "Tata AIG",
-  "Go Digit",
-  "SBI General Insurance",
-  "Reliance General Insurance"
-];
 
 export default function InsuranceModal({
   isOpen,
@@ -45,13 +33,10 @@ export default function InsuranceModal({
   const [isUploading, setIsUploading] = useState(false);
   const [isCustomUnderwriter, setIsCustomUnderwriter] = useState(false);
 
-  // Combine default underwriter list with saved underwriter database
+  // Dynamic underwriter list based on user dealings database
   const underwriterOptions = Array.from(
-    new Set([
-      ...underwriters.map((u) => u.name),
-      ...POPULAR_UNDERWRITERS
-    ])
-  ).filter(Boolean);
+    new Set((underwriters || []).map((u) => u.name).filter(Boolean))
+  );
 
   useEffect(() => {
     if (insurance) {
@@ -80,13 +65,12 @@ export default function InsuranceModal({
       const nextYear = new Date();
       nextYear.setFullYear(nextYear.getFullYear() + 1);
       const nextYearStr = nextYear.toISOString().split("T")[0];
-      const defaultCompany = underwriterOptions[0] || "National Insurance";
 
       setFormData({
         customerPhone: "",
         customerName: "",
         vehicleReg: "",
-        underwriter: defaultCompany,
+        underwriter: "",
         policyNumber: "",
         expiryDate: nextYearStr,
         documentUrl: "",
@@ -97,9 +81,9 @@ export default function InsuranceModal({
         status: "Active",
         notes: ""
       });
-      setIsCustomUnderwriter(false);
+      setIsCustomUnderwriter(underwriterOptions.length === 0);
     }
-  }, [insurance, isOpen]);
+  }, [insurance, isOpen, underwriters]);
 
   if (!isOpen) return null;
 
@@ -166,7 +150,12 @@ export default function InsuranceModal({
   };
 
   const handleAddYear = () => {
-    const base = formData.expiryDate ? new Date(formData.expiryDate) : new Date();
+    let base = new Date();
+    if (formData.expiryDate) {
+      const iso = parseIndianDateToISO(formData.expiryDate);
+      const parsed = new Date(iso);
+      if (!isNaN(parsed)) base = parsed;
+    }
     base.setFullYear(base.getFullYear() + 1);
     setFormData((prev) => ({ ...prev, expiryDate: base.toISOString().split("T")[0] }));
   };
@@ -325,31 +314,52 @@ export default function InsuranceModal({
 
           {/* Underwriter (Insurance Company) */}
           <div style={{ marginBottom: "14px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "5px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "5px", flexWrap: "wrap", gap: "6px" }}>
               <label style={{ fontSize: "0.8rem", fontWeight: 600 }}>
                 Underwriter (Insurance Company) <span style={{ color: "#ef4444" }}>*</span>
               </label>
-              <button
-                type="button"
-                onClick={() => setIsCustomUnderwriter(!isCustomUnderwriter)}
-                style={{
-                  background: "transparent",
-                  border: "none",
-                  color: "var(--brand-primary, #1e3a8a)",
-                  fontSize: "0.75rem",
-                  fontWeight: 600,
-                  cursor: "pointer",
-                  textDecoration: "underline"
-                }}
-              >
-                {isCustomUnderwriter ? "Select from list" : "Type custom name"}
-              </button>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                {onOpenManageUnderwriters && (
+                  <button
+                    type="button"
+                    onClick={onOpenManageUnderwriters}
+                    style={{
+                      background: "transparent",
+                      border: "none",
+                      color: "var(--brand-primary, #1e3a8a)",
+                      fontSize: "0.75rem",
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      textDecoration: "underline"
+                    }}
+                  >
+                    + Manage Underwriters
+                  </button>
+                )}
+                {underwriterOptions.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setIsCustomUnderwriter(!isCustomUnderwriter)}
+                    style={{
+                      background: "transparent",
+                      border: "none",
+                      color: "var(--brand-primary, #1e3a8a)",
+                      fontSize: "0.75rem",
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      textDecoration: "underline"
+                    }}
+                  >
+                    {isCustomUnderwriter ? "Select from list" : "Type custom name"}
+                  </button>
+                )}
+              </div>
             </div>
 
-            {isCustomUnderwriter ? (
+            {isCustomUnderwriter || underwriterOptions.length === 0 ? (
               <input
                 type="text"
-                placeholder="e.g. United India Insurance Company"
+                placeholder="e.g. National Insurance, Tata AIG, Go Digit, HDFC ERGO..."
                 value={formData.underwriter}
                 onChange={(e) => setFormData((prev) => ({ ...prev, underwriter: e.target.value }))}
                 required
@@ -365,6 +375,7 @@ export default function InsuranceModal({
               <select
                 value={formData.underwriter}
                 onChange={(e) => setFormData((prev) => ({ ...prev, underwriter: e.target.value }))}
+                required
                 style={{
                   width: "100%",
                   padding: "9px 12px",
@@ -374,6 +385,7 @@ export default function InsuranceModal({
                   background: "#ffffff"
                 }}
               >
+                <option value="">-- Select Insurance Underwriter / Company --</option>
                 {underwriterOptions.map((opt) => (
                   <option key={opt} value={opt}>
                     {opt}
@@ -387,7 +399,7 @@ export default function InsuranceModal({
           <div style={{ marginBottom: "14px" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "5px" }}>
               <label style={{ fontSize: "0.8rem", fontWeight: 600 }}>
-                Expire Date <span style={{ color: "#ef4444" }}>*</span>
+                Expire Date (DD/MM/YYYY) <span style={{ color: "#ef4444" }}>*</span>
               </label>
               <button
                 type="button"
@@ -404,18 +416,10 @@ export default function InsuranceModal({
                 +1 Year from current
               </button>
             </div>
-            <input
-              type="date"
+            <IndianDateInput
               value={formData.expiryDate}
               onChange={(e) => setFormData((prev) => ({ ...prev, expiryDate: e.target.value }))}
               required
-              style={{
-                width: "100%",
-                padding: "9px 12px",
-                borderRadius: "8px",
-                border: "1px solid var(--border-default, #cbd5e1)",
-                fontSize: "0.9rem"
-              }}
             />
           </div>
 

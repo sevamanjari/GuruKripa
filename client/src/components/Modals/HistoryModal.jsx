@@ -1,5 +1,6 @@
 import React from "react";
 import { X, History, Calendar, Shield, FileText, ArrowRight, Clock } from "lucide-react";
+import { formatToIndianDate } from "../../utils/dateFormatter.js";
 
 export default function HistoryModal({ isOpen, onClose, item, type = "insurance" }) {
   if (!isOpen || !item) return null;
@@ -108,7 +109,7 @@ export default function HistoryModal({ isOpen, onClose, item, type = "insurance"
                   Valid Until
                 </span>
                 <span style={{ fontWeight: 600, fontSize: "0.82rem", color: "var(--text-primary)" }}>
-                  {item.expiryDate || "N/A"}
+                  {formatToIndianDate(item.expiryDate) || "N/A"}
                 </span>
               </div>
 
@@ -183,7 +184,7 @@ export default function HistoryModal({ isOpen, onClose, item, type = "insurance"
                         </td>
                         <td>
                           <div style={{ fontSize: "0.8rem", color: "var(--text-secondary)" }}>
-                            {h.issueDate || "Prior"} <span style={{ color: "var(--text-light)" }}>→</span> {h.expiryDate}
+                            {formatToIndianDate(h.issueDate) || "Prior"} <span style={{ color: "var(--text-light)" }}>→</span> {formatToIndianDate(h.expiryDate)}
                           </div>
                         </td>
                         <td>
