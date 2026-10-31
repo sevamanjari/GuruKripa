@@ -444,7 +444,7 @@ export default function App() {
   }
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
+    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", width: "100%", maxWidth: "100vw", overflowX: "hidden" }}>
       {/* Render Free Tier Cold-Start Spin-Up Notification Banner */}
       {isServerWaking && (
         <div
