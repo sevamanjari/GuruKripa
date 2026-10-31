@@ -62,9 +62,11 @@ export default function Navbar({
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
                   className={`desktop-tab-btn ${isActive ? "active" : ""}`}
+                  title={tab.label}
                 >
-                  <Icon size={14} />
-                  <span>{tab.label}</span>
+                  <Icon size={14} className="desktop-tab-icon" />
+                  <span className="desktop-tab-text-full">{tab.label}</span>
+                  <span className="desktop-tab-text-short">{tab.shortLabel}</span>
                   {tab.count !== undefined && (
                     <span className="tab-counter-badge">
                       {tab.count}

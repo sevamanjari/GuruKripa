@@ -66,13 +66,26 @@
   box-sizing: border-box;
 }
 
+html,
 body {
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
   font-family: var(--font-body);
   background-color: var(--bg-app);
   color: var(--text-primary);
   min-height: 100vh;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Headings */
@@ -769,10 +782,11 @@ h1, h2, h3, h4, h5, h6 {
 /* App Main Workspace */
 .app-main-workspace {
   flex: 1;
-  max-width: 1280px;
+  max-width: 1400px;
   width: 100%;
   margin: 0 auto;
   padding: 24px 20px 60px;
+  box-sizing: border-box;
 }
 
 /* Top Navigation Bar */
@@ -782,17 +796,21 @@ h1, h2, h3, h4, h5, h6 {
   z-index: 500;
   background: #ffffff;
   border-bottom: 1px solid var(--border-default);
-  padding: 0 20px;
+  padding: 0 16px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .app-top-header-inner {
-  max-width: 1280px;
+  max-width: 1400px;
+  width: 100%;
   margin: 0 auto;
   display: flex;
   align-items: center;
   justify-content: space-between;
   height: 60px;
-  gap: 12px;
+  gap: 10px;
+  box-sizing: border-box;
 }
 
 .navbar-brand {
@@ -801,6 +819,7 @@ h1, h2, h3, h4, h5, h6 {
   gap: 10px;
   cursor: pointer;
   user-select: none;
+  flex-shrink: 0;
 }
 
 .brand-logo-box {
@@ -822,7 +841,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .brand-name {
-  font-size: 1.08rem;
+  font-size: 1.05rem;
   font-weight: 700;
   color: var(--text-primary);
   letter-spacing: -0.02em;
@@ -845,22 +864,32 @@ h1, h2, h3, h4, h5, h6 {
   padding: 3px;
   border-radius: 6px;
   border: 1px solid var(--border-default);
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.desktop-nav-tabs::-webkit-scrollbar {
+  display: none;
 }
 
 .desktop-tab-btn {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 12px;
+  padding: 6px 11px;
   border-radius: 5px;
   border: none;
   cursor: pointer;
-  font-size: 0.82rem;
+  font-size: 0.81rem;
   font-weight: 500;
   color: var(--text-muted);
   background: transparent;
   transition: all 0.15s ease;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .desktop-tab-btn:hover {
@@ -872,6 +901,14 @@ h1, h2, h3, h4, h5, h6 {
   color: var(--brand-primary);
   background: #ffffff;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.desktop-tab-text-full {
+  display: inline;
+}
+
+.desktop-tab-text-short {
+  display: none;
 }
 
 .tab-counter-badge {
@@ -892,23 +929,27 @@ h1, h2, h3, h4, h5, h6 {
 .navbar-user-section {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
+  flex-shrink: 0;
+  margin-left: auto;
 }
 
 .user-profile-chip {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 5px 9px 5px 11px;
+  padding: 4px 8px 4px 10px;
   border-radius: var(--radius-sm);
   background: var(--bg-subtle);
   border: 1px solid var(--border-default);
   font-size: 0.78rem;
+  flex-shrink: 0;
 }
 
 .user-details-col {
   display: flex;
   flex-direction: column;
+  min-width: 0;
 }
 
 .user-name-text {
@@ -916,7 +957,7 @@ h1, h2, h3, h4, h5, h6 {
   color: var(--text-primary);
   line-height: 1.1;
   white-space: nowrap;
-  max-width: 130px;
+  max-width: 120px;
   overflow: hidden;
   text-overflow: ellipsis;
 }
@@ -928,18 +969,61 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .user-logout-btn {
-  background: transparent;
-  border: none;
+  background: #f1f5f9;
+  border: 1px solid var(--border-default);
   color: var(--text-muted);
   cursor: pointer;
-  display: flex;
-  padding: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px;
   border-radius: 4px;
-  transition: color 0.15s ease;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
 }
 
 .user-logout-btn:hover {
+  background: #fee2e2;
+  border-color: #fca5a5;
   color: #dc2626;
+}
+
+/* Intermediate Desktop responsiveness for header */
+@media (max-width: 1350px) {
+  .desktop-tab-text-full {
+    display: none;
+  }
+  .desktop-tab-text-short {
+    display: inline;
+  }
+  .desktop-tab-btn {
+    padding: 5px 8px;
+    font-size: 0.78rem;
+    gap: 4px;
+  }
+  .brand-badge-tag {
+    display: none;
+  }
+}
+
+@media (max-width: 1120px) {
+  .app-top-header {
+    padding: 0 10px;
+  }
+  .app-top-header-inner {
+    gap: 6px;
+  }
+  .user-role-text {
+    display: none;
+  }
+  .user-name-text {
+    max-width: 85px;
+  }
+  .desktop-tab-btn {
+    padding: 4px 6px;
+    font-size: 0.75rem;
+    gap: 3px;
+  }
 }
 
 /* Mobile Bottom Navigation Bar (Hidden by default on desktop) */
