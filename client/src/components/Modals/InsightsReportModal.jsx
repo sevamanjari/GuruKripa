@@ -138,14 +138,9 @@ export default function InsightsReportModal({
             }}
           >
             <div>
-              <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
-                <h2 style={{ fontSize: "1.35rem", fontWeight: 800, color: "#0f172a", margin: 0 }}>
-                  GURUKRIPA YATAYAT
-                </h2>
-                <span style={{ fontSize: "0.72rem", background: "rgba(30, 58, 138, 0.08)", color: "var(--brand-primary, #1e3a8a)", padding: "2px 8px", borderRadius: "10px", fontWeight: 700 }}>
-                  Developed by SevaManjari Labs
-                </span>
-              </div>
+              <h2 style={{ fontSize: "1.35rem", fontWeight: 800, color: "#0f172a", margin: 0 }}>
+                GURUKRIPA YATAYAT
+              </h2>
               <p style={{ fontSize: "0.82rem", color: "#64748b", marginTop: "2px" }}>
                 Commercial Transport Agency, National Permits & Vehicle Insurance Operations
               </p>
